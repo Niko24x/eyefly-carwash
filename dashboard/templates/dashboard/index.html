@@ -1,0 +1,391 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="dashboard-hero">
+    <div>
+        <p class="eyebrow">Panel administrativo</p>
+        <h1>Dashboard del carwash</h1>
+        <p>Consulta usuarios, revisa las citas y descarga los datos importantes.</p>
+    </div>
+    <div class="dashboard-actions">
+        <a class="button button-light" href="{% url 'dashboard:download_users' %}">Descargar usuarios</a>
+        <a class="button" href="{% url 'dashboard:download_appointments' %}">Descargar citas</a>
+    </div>
+</section>
+
+<section class="stat-grid" aria-label="Resumen del negocio">
+    <article class="stat-card">
+        <span>Usuarios</span>
+        <strong>{{ total_users }}</strong>
+        <p>Cuentas registradas</p>
+    </article>
+    <article class="stat-card">
+        <span>Citas</span>
+        <strong>{{ total_appointments }}</strong>
+        <p>Total agendado</p>
+    </article>
+    <article class="stat-card">
+        <span>Próximas</span>
+        <strong>{{ upcoming_appointments }}</strong>
+        <p>Citas por atender</p>
+    </article>
+    <article class="stat-card">
+        <span>Hoy</span>
+        <strong>{{ today_appointments }}</strong>
+        <p>Citas del día</p>
+    </article>
+</section>
+
+<section class="stat-grid payment-stat-grid" aria-label="Resumen de pagos">
+    <article class="stat-card stat-card-paid">
+        <span>Pagadas</span>
+        <strong>{{ paid_count }}</strong>
+        <p>Total cobrado: Q{{ paid_total }}</p>
+    </article>
+    <article class="stat-card stat-card-pending">
+        <span>Pendientes</span>
+        <strong>{{ pending_count }}</strong>
+        <p>Por cobrar: Q{{ pending_total }}</p>
+    </article>
+    <article class="stat-card">
+        <span>Total facturable</span>
+        <strong>Q{{ payment_total }}</strong>
+        <p>{{ paid_count }} pagadas · {{ pending_count }} pendientes</p>
+    </article>
+</section>
+
+<section class="dashboard-section">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Calendario</p>
+            <h2>{{ month_start|date:"F Y" }}</h2>
+        </div>
+        <div class="calendar-nav">
+            <a href="?year={{ previous_month.year }}&month={{ previous_month.month }}">Mes anterior</a>
+            <a href="?year={{ next_month.year }}&month={{ next_month.month }}">Mes siguiente</a>
+        </div>
+    </div>
+
+    <div class="calendar" data-calendar>
+        {% for weekday in weekdays %}
+            <div class="calendar-weekday">{{ weekday }}</div>
+        {% endfor %}
+
+        {% for week in calendar_weeks %}
+            {% for day in week %}
+                <article
+                    class="calendar-day{% if not day.in_month %} muted{% endif %}{% if day.is_today %} today{% endif %}"
+                    role="button"
+                    tabindex="0"
+                    data-day-title="{{ day.date|date:'l, d F Y' }}"
+                >
+                    <div class="calendar-date">{{ day.date|date:"j" }}</div>
+                    {% if day.appointments %}
+                        <div class="calendar-events">
+                            {% for appointment in day.visible_appointments %}
+                                <button
+                                    class="calendar-event"
+                                    type="button"
+                                    data-appointment-detail
+                                    data-client="{{ appointment.first_name }} {{ appointment.last_name }}"
+                                    data-building="{{ appointment.building.name }}"
+                                    data-service="{{ appointment.service.name }}"
+                                    data-phone="{{ appointment.phone_number }}"
+                                    data-email="{{ appointment.email }}"
+                                    data-date="{{ appointment.date|date:'d/m/Y' }}"
+                                    data-time="{{ appointment.time|time:'H:i' }}"
+                                    data-user="{{ appointment.user.username }}"
+                                    data-created="{{ appointment.created_at|date:'d/m/Y H:i' }}"
+                                    data-edit-url="{% url 'appointment_update' appointment.pk %}"
+                                >
+                                    <strong>{{ appointment.time|time:"H:i" }}</strong>
+                                    <span>{{ appointment.first_name }} {{ appointment.last_name }}</span>
+                                    <small>{{ appointment.building.name }}</small>
+                                </button>
+                            {% endfor %}
+                            {% if day.hidden_appointments_count %}
+                                <button class="see-more-button" type="button" data-open-day>
+                                    Ver más ({{ day.hidden_appointments_count }})
+                                </button>
+                            {% endif %}
+                        </div>
+                    {% else %}
+                        <span class="calendar-empty">Sin citas</span>
+                    {% endif %}
+
+                    <div class="day-details" hidden>
+                        {% if day.appointments %}
+                            <div class="modal-appointment-list">
+                                {% for appointment in day.appointments %}
+                                    <button
+                                        class="modal-appointment-item"
+                                        type="button"
+                                        data-appointment-detail
+                                        data-client="{{ appointment.first_name }} {{ appointment.last_name }}"
+                                        data-building="{{ appointment.building.name }}"
+                                        data-service="{{ appointment.service.name }}"
+                                        data-phone="{{ appointment.phone_number }}"
+                                        data-email="{{ appointment.email }}"
+                                        data-date="{{ appointment.date|date:'d/m/Y' }}"
+                                        data-time="{{ appointment.time|time:'H:i' }}"
+                                        data-user="{{ appointment.user.username }}"
+                                        data-created="{{ appointment.created_at|date:'d/m/Y H:i' }}"
+                                        data-edit-url="{% url 'appointment_update' appointment.pk %}"
+                                    >
+                                        <span>{{ appointment.time|time:"H:i" }}</span>
+                                        <strong>{{ appointment.first_name }} {{ appointment.last_name }}</strong>
+                                        <small>{{ appointment.building.name }} · {{ appointment.phone_number }} · {{ appointment.email }}</small>
+                                    </button>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="helper-text">No hay citas agendadas para este día.</p>
+                        {% endif %}
+                    </div>
+                </article>
+            {% endfor %}
+        {% endfor %}
+    </div>
+</section>
+
+<section class="dashboard-grid">
+    <article class="dashboard-section">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Usuarios</p>
+                <h2>Clientes registrados</h2>
+            </div>
+            <a href="{% url 'dashboard:download_users' %}">CSV</a>
+        </div>
+
+        <div class="table-wrap">
+            <table class="dashboard-table">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Nombre</th>
+                        <th>Correo</th>
+                        <th>Citas</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for account in users %}
+                        <tr>
+                            <td>{{ account.username }}</td>
+                            <td>{{ account.first_name }} {{ account.last_name }}</td>
+                            <td>{{ account.email|default:"Sin correo" }}</td>
+                            <td>{{ account.appointment_count }}</td>
+                            <td>
+                                <a class="button button-secondary" href="{% url 'user_update' account.pk %}">Editar</a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5">Todavía no hay usuarios registrados.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    <article class="dashboard-section">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Citas</p>
+                <h2>Agenda completa</h2>
+            </div>
+            <a href="{% url 'dashboard:download_appointments' %}">CSV</a>
+        </div>
+
+        <div class="table-wrap">
+            <table class="dashboard-table">
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Edificio</th>
+                        <th>Servicio</th>
+                        <th>Contacto</th>
+                        <th>Fecha</th>
+                        <th>Pago</th>
+                        <th>Usuario</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in appointments %}
+                        <tr>
+                            <td>{{ appointment.first_name }} {{ appointment.last_name }}</td>
+                            <td>{{ appointment.building.name }}</td>
+                            <td>{{ appointment.service.name }}</td>
+                            <td>{{ appointment.phone_number }}<br>{{ appointment.email }}</td>
+                            <td>{{ appointment.date|date:"d/m/Y" }} {{ appointment.time|time:"H:i" }}</td>
+                            <td>
+                                <span class="status-badge status-badge-payment-{{ appointment.payment_status_label|slugify }}">
+                                    {{ appointment.payment_status_label }}
+                                </span>
+                                {% if appointment.is_paid and appointment.get_payment_type_display %}
+                                    <br><small>{{ appointment.get_payment_type_display }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ appointment.user.username }}</td>
+                            <td class="table-actions">
+                                <a class="button button-secondary" href="{% url 'appointment_update' appointment.pk %}">Editar</a>
+                                <a class="button button-secondary" href="{% url 'appointment_payment' appointment.pk %}">Pago</a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="8">Todavía no hay citas agendadas.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </article>
+</section>
+
+<div class="modal-backdrop" data-modal="day" hidden>
+    <section class="modal-card day-modal" role="dialog" aria-modal="true" aria-labelledby="day-modal-title">
+        <button class="modal-close" type="button" data-close-modal aria-label="Cerrar">x</button>
+        <p class="eyebrow">Citas del día</p>
+        <h2 id="day-modal-title">Agenda del día</h2>
+        <div class="modal-content" data-day-modal-content></div>
+    </section>
+</div>
+
+<div class="modal-backdrop" data-modal="appointment" hidden>
+    <section class="modal-card appointment-modal" role="dialog" aria-modal="true" aria-labelledby="appointment-modal-title">
+        <button class="modal-close" type="button" data-close-modal aria-label="Cerrar">x</button>
+        <p class="eyebrow">Detalle de cita</p>
+        <h2 id="appointment-modal-title" data-appointment-client></h2>
+        <dl class="appointment-detail-list">
+            <div>
+                <dt>Edificio</dt>
+                <dd data-appointment-building></dd>
+            </div>
+            <div>
+                <dt>Servicio</dt>
+                <dd data-appointment-service></dd>
+            </div>
+            <div>
+                <dt>Fecha</dt>
+                <dd data-appointment-date></dd>
+            </div>
+            <div>
+                <dt>Hora</dt>
+                <dd data-appointment-time></dd>
+            </div>
+            <div>
+                <dt>Teléfono</dt>
+                <dd data-appointment-phone></dd>
+            </div>
+            <div>
+                <dt>Correo</dt>
+                <dd data-appointment-email></dd>
+            </div>
+            <div>
+                <dt>Usuario</dt>
+                <dd data-appointment-user></dd>
+            </div>
+            <div>
+                <dt>Creada</dt>
+                <dd data-appointment-created></dd>
+            </div>
+        </dl>
+        <div class="card-actions">
+            <a class="button" data-appointment-edit href="#">Editar cita</a>
+        </div>
+    </section>
+</div>
+
+<script>
+    (() => {
+        const calendar = document.querySelector('[data-calendar]');
+        const dayModal = document.querySelector('[data-modal="day"]');
+        const appointmentModal = document.querySelector('[data-modal="appointment"]');
+
+        if (!calendar || !dayModal || !appointmentModal) {
+            return;
+        }
+
+        const closeModals = () => {
+            document.querySelectorAll('[data-modal]').forEach((modal) => {
+                modal.hidden = true;
+            });
+        };
+
+        const openDayModal = (day) => {
+            dayModal.querySelector('#day-modal-title').textContent = day.dataset.dayTitle;
+            dayModal.querySelector('[data-day-modal-content]').innerHTML =
+                day.querySelector('.day-details').innerHTML;
+            dayModal.hidden = false;
+        };
+
+        const openAppointmentModal = (button) => {
+            appointmentModal.querySelector('[data-appointment-client]').textContent =
+                button.dataset.client;
+            appointmentModal.querySelector('[data-appointment-building]').textContent =
+                button.dataset.building;
+            appointmentModal.querySelector('[data-appointment-service]').textContent =
+                button.dataset.service;
+            appointmentModal.querySelector('[data-appointment-date]').textContent =
+                button.dataset.date;
+            appointmentModal.querySelector('[data-appointment-time]').textContent =
+                button.dataset.time;
+            appointmentModal.querySelector('[data-appointment-phone]').textContent =
+                button.dataset.phone;
+            appointmentModal.querySelector('[data-appointment-email]').textContent =
+                button.dataset.email;
+            appointmentModal.querySelector('[data-appointment-user]').textContent =
+                button.dataset.user;
+            appointmentModal.querySelector('[data-appointment-created]').textContent =
+                button.dataset.created;
+            appointmentModal.querySelector('[data-appointment-edit]').href =
+                button.dataset.editUrl;
+            appointmentModal.hidden = false;
+        };
+
+        document.addEventListener('click', (event) => {
+            const closeButton = event.target.closest('[data-close-modal]');
+            if (closeButton || event.target.matches('[data-modal]')) {
+                closeModals();
+                return;
+            }
+
+            const appointmentButton = event.target.closest('[data-appointment-detail]');
+            if (appointmentButton) {
+                event.stopPropagation();
+                openAppointmentModal(appointmentButton);
+                return;
+            }
+
+            const day = event.target.closest('.calendar-day');
+            if (day) {
+                openDayModal(day);
+            }
+        });
+
+        calendar.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') {
+                return;
+            }
+
+            const day = event.target.closest('.calendar-day');
+            if (day && event.target === day) {
+                event.preventDefault();
+                openDayModal(day);
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                closeModals();
+            }
+        });
+    })();
+</script>
+{% endblock %}

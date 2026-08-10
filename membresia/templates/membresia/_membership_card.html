@@ -1,0 +1,34 @@
+<article class="mem-card mem-card--{{ plan.accent }}{% if plan.is_featured %} mem-card--featured{% endif %}">
+    {% if plan.is_featured and plan.featured_banner %}
+        <div class="mem-card-banner">{{ plan.featured_banner }}</div>
+    {% endif %}
+    <div class="mem-card-body">
+        <div class="mem-card-tier">
+            {% if plan.emoji %}<span class="mem-card-emoji" aria-hidden="true">{{ plan.emoji }}</span>{% endif %}
+            <span class="mem-card-tier-label">{{ plan.tier_label }}</span>
+        </div>
+        <h3 class="mem-card-name">{{ plan.name }}</h3>
+        <div class="mem-card-price-row">
+            <span class="mem-card-price">Q{{ plan.monthly_price|floatformat:'-2' }}</span>
+            <span class="mem-card-period">/mes</span>
+        </div>
+        {% if plan.savings_label %}
+            <span class="mem-card-savings">{{ plan.savings_label }}</span>
+        {% endif %}
+        {% if plan.feature_items %}
+            <ul class="mem-card-features">
+                {% for item in plan.feature_items %}
+                    <li>
+                        <i class="fa-solid fa-check" aria-hidden="true"></i>
+                        <span>{{ item }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if plan.is_available_for_purchase %}
+            <a class="mem-card-cta" href="{% url 'appointment_create' %}">Suscribirme</a>
+        {% else %}
+            <span class="mem-card-cta mem-card-cta--disabled">Próximamente</span>
+        {% endif %}
+    </div>
+</article>

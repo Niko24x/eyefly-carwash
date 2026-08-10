@@ -1,0 +1,131 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Slick Car Cleaning | Tu auto limpio, sin salir del edificio{% endblock %}</title>
+    <meta name="description" content="Servicio premium de lavado de autos a domicilio en edificios de Guatemala. Básico desde Q75.">
+    <link rel="stylesheet" href="{% static 'vendor/font-awesome/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body class="public-page">
+    <header class="pub-header">
+        <div class="pub-header-inner">
+            <a class="pub-brand" href="{% url 'home' %}">
+                <img
+                    class="pub-brand-logo"
+                    src="{% static 'images/brand/logo.png' %}"
+                    alt="Slick Car Cleaning"
+                    width="36"
+                    height="36"
+                >
+                <span class="pub-brand-name">SLICK</span>
+            </a>
+            <nav class="pub-nav-links">
+                <a class="pub-nav-link {% block nav_inicio %}{% endblock %}" href="{% url 'home' %}">Inicio</a>
+                <a class="pub-nav-link {% block nav_servicios %}{% endblock %}" href="{% url 'service_pricing' %}">Servicios</a>
+                <a class="pub-nav-link {% block nav_agendar %}{% endblock %}" href="{% url 'appointment_create' %}">Agendar</a>
+                {% if user.is_authenticated %}
+                    <a class="pub-nav-link" href="{% url 'account_profile' %}">Mi Cuenta</a>
+                {% else %}
+                    <a class="pub-nav-link" href="{% url 'login' %}">Mi Cuenta</a>
+                {% endif %}
+                <a class="pub-nav-cta" href="{% url 'appointment_create' %}">Agendar Ahora</a>
+            </nav>
+        </div>
+    </header>
+
+    {% if messages %}
+        <div class="message-toasts" id="message-toasts">
+            {% for message in messages %}
+                <div class="message-toast message-toast-{{ message.tags|default:'info' }}" role="status">
+                    <div class="message-toast-body">
+                        <p class="message-toast-text">{{ message }}</p>
+                        <button type="button" class="message-toast-close" aria-label="Cerrar">×</button>
+                    </div>
+                    <div class="message-toast-progress" aria-hidden="true">
+                        <span class="message-toast-progress-bar"></span>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+
+    <footer class="pub-footer">
+        <div class="pub-footer-inner">
+            <div class="pub-footer-cols">
+                <div class="pub-footer-brand">
+                    <div class="pub-brand">
+                        <img
+                            class="pub-brand-logo"
+                            src="{% static 'images/brand/logo.png' %}"
+                            alt=""
+                            width="36"
+                            height="36"
+                        >
+                        <span class="pub-footer-brand-name">
+                            SLICK
+                            <small>Car Cleaning</small>
+                        </span>
+                    </div>
+                    <p class="pub-footer-desc">
+                        Tu auto limpio, sin salir del edificio. Servicio premium de lavado a
+                        domicilio en Guatemala.
+                    </p>
+                </div>
+
+                <div class="pub-footer-col">
+                    <h4 class="pub-footer-title">Navegación</h4>
+                    <ul class="pub-footer-list">
+                        <li><a href="{% url 'home' %}">Inicio</a></li>
+                        <li><a href="{% url 'service_pricing' %}">Servicios</a></li>
+                        <li><a href="{% url 'appointment_create' %}">Agendar</a></li>
+                        <li>
+                            {% if user.is_authenticated %}
+                                <a href="{% url 'account_profile' %}">Mi Cuenta</a>
+                            {% else %}
+                                <a href="{% url 'login' %}">Mi Cuenta</a>
+                            {% endif %}
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="pub-footer-col">
+                    <h4 class="pub-footer-title">Contacto</h4>
+                    <ul class="pub-footer-list">
+                        <li><a href="https://wa.me/50200000000" target="_blank" rel="noopener noreferrer">WhatsApp: +502 0000-0000</a></li>
+                        <li>Guatemala, GT</li>
+                        <li><a href="mailto:hola@slickcargt.com">hola@slickcargt.com</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="pub-footer-bottom">
+                <p>© 2026 Slick Car Cleaning. Todos los derechos reservados.</p>
+                <div class="pub-footer-bottom-meta">
+                    <span>Guatemala City, GT</span>
+                    <span>|</span>
+                    <span>Hecho con amor y agua</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <a
+        class="pub-whatsapp"
+        href="https://wa.me/50200000000?text=Hola%2C%20quiero%20agendar%20un%20lavado%20de%20auto"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Contactar por WhatsApp"
+    >
+        <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+    </a>
+
+    <script src="{% static 'js/messages.js' %}"></script>
+    <script src="{% static 'js/pub-header.js' %}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

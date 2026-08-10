@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Servicios | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div>
+        <h1>Servicios</h1>
+        <p>Administra los servicios disponibles para agendar citas de lavado.</p>
+    </div>
+    <a class="button" href="{% url 'service_create' %}">Registrar servicio</a>
+</section>
+
+{% if services %}
+    <section class="building-grid">
+        {% for service in services %}
+            <article class="building-card">
+                <p class="eyebrow">Servicio</p>
+                <h2>{{ service.name }}</h2>
+                {% if service.description %}
+                    <p><strong>Descripción:</strong> {{ service.description|linebreaksbr }}</p>
+                {% endif %}
+                <p>
+                    <strong>Estado:</strong>
+                    {% if service.is_active %}
+                        Activo
+                    {% else %}
+                        Inactivo
+                    {% endif %}
+                </p>
+                <div class="card-actions">
+                    <a class="button button-secondary" href="{% url 'service_update' service.pk %}">Editar</a>
+                </div>
+            </article>
+        {% endfor %}
+    </section>
+{% else %}
+    <section class="card">
+        <h2>Aún no hay servicios registrados</h2>
+        <p>Registra el primer servicio para que los clientes puedan seleccionarlo al agendar una cita.</p>
+        <a class="button" href="{% url 'service_create' %}">Registrar servicio</a>
+    </section>
+{% endif %}
+{% endblock %}

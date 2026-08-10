@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Horarios por edificio | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div>
+        <p class="breadcrumb"><a href="{% url 'configuracion:index' %}">Configuración</a> / Horarios</p>
+        <h1>Horarios por edificio</h1>
+        <p>Selecciona un edificio para configurar sus días y horas de atención.</p>
+    </div>
+</section>
+
+{% if buildings %}
+    <section class="building-grid">
+        {% for building in buildings %}
+            <article class="building-card">
+                <p class="eyebrow">Edificio</p>
+                <h2>{{ building.name }}</h2>
+                <p><strong>Dirección:</strong> {{ building.address|linebreaksbr }}</p>
+                <div class="card-actions">
+                    <a class="button" href="{% url 'configuracion:building_schedule_edit' building.pk %}">
+                        Configurar horario
+                    </a>
+                </div>
+            </article>
+        {% endfor %}
+    </section>
+{% else %}
+    <section class="card">
+        <h2>No hay edificios registrados</h2>
+        <p>Registra un edificio antes de configurar horarios de atención.</p>
+        <a class="button" href="{% url 'building_create' %}">Registrar edificio</a>
+    </section>
+{% endif %}
+{% endblock %}

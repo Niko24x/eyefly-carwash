@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h1>{{ page_title }}</h1>
+    <p>{{ page_description }}</p>
+
+    <form method="post" class="form" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        {% if building and building.image %}
+            <p class="building-image-preview">
+                <label>Imagen actual</label>
+                <img src="{{ building.image.url }}" alt="{{ building.name }}" width="240">
+            </p>
+        {% endif %}
+        <div class="card-actions">
+            <button type="submit">{{ submit_label }}</button>
+            <a class="button button-secondary" href="{% url 'building_list' %}">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+
+
+{% block title %}Mis edificios | Lavado de Autos{% endblock %}
+
+
+
+{% block content %}
+
+<section class="hero">
+
+    <div>
+
+        <h1>Mis edificios</h1>
+
+        <p>Registra edificios para coordinar el servicio de lavado de autos.</p>
+
+    </div>
+
+    <a class="button" href="{% url 'building_create' %}">Registrar edificio</a>
+
+</section>
+
+
+
+{% if buildings %}
+
+    <section class="building-grid">
+
+        {% for building in buildings %}
+
+            <article class="building-card{% if not building.accepts_appointments %} building-card-inactive{% endif %}">
+
+                {% if building.image %}
+                    <div class="building-card-image" style="background-image: url('{{ building.image.url }}');" role="img" aria-label="{{ building.name }}"></div>
+                {% else %}
+                    <p class="eyebrow">Edificio</p>
+                {% endif %}
+
+                <h2>{{ building.name }}</h2>
+
+                <p>
+
+                    <strong>Citas:</strong>
+
+                    {% if building.accepts_appointments %}
+
+                        <span class="status-badge status-badge-active">Acepta citas</span>
+
+                    {% else %}
+
+                        <span class="status-badge status-badge-cancelled">No acepta citas</span>
+
+                    {% endif %}
+
+                </p>
+
+                <p><strong>Dirección:</strong> {{ building.address|linebreaksbr }}</p>
+
+                <p><strong>Autos por turno:</strong> {{ building.autos_por_turno }}</p>
+
+                <p><strong>Contacto:</strong> {{ building.contact_name }}</p>
+
+                <p><strong>Teléfono:</strong> {{ building.phone_number }}</p>
+
+                <p><strong>Correo electrónico:</strong> {{ building.email }}</p>
+
+                <p>
+
+                    <strong>Administradores:</strong>
+
+                    {% for admin in building.admins.all %}
+
+                        {{ admin.username }}{% if not forloop.last %}, {% endif %}
+
+                    {% empty %}
+
+                        Sin administradores asignados
+
+                    {% endfor %}
+
+                </p>
+
+                {% if building.notes %}
+
+                    <p><strong>Notas:</strong> {{ building.notes|linebreaksbr }}</p>
+
+                {% endif %}
+
+                <div class="card-actions">
+
+                    <a class="button button-secondary" href="{% url 'building_update' building.pk %}">Editar</a>
+
+                    <a class="button button-secondary" href="{% url 'configuracion:building_schedule_edit' building.pk %}">
+
+                        Horario
+
+                    </a>
+
+                    <form method="post" action="{% url 'building_toggle_appointments' building.pk %}">
+
+                        {% csrf_token %}
+
+                        {% if building.accepts_appointments %}
+
+                            <button type="submit" class="button button-danger">Desactivar citas</button>
+
+                        {% else %}
+
+                            <button type="submit" class="button button-success">Activar citas</button>
+
+                        {% endif %}
+
+                    </form>
+
+                </div>
+
+            </article>
+
+        {% endfor %}
+
+    </section>
+
+{% else %}
+
+    <section class="card">
+
+        <h2>Aún no tienes edificios registrados</h2>
+
+        <p>Registra el primer edificio para que podamos revisar la solicitud de servicio.</p>
+
+        <a class="button" href="{% url 'building_create' %}">Registrar edificio</a>
+
+    </section>
+
+{% endif %}
+
+{% endblock %}
+
+

@@ -1,0 +1,28 @@
+<article class="svc-card svc-card--{{ service.accent }}{% if service.is_featured %} svc-card--featured{% endif %}">
+    <div class="svc-card-inner">
+        <div class="svc-card-top">
+            {% if service.badge %}<span class="svc-badge">{{ service.badge }}</span>{% endif %}
+            <span class="svc-duration">
+                <i class="fa-regular fa-clock" aria-hidden="true"></i> {{ service.duration_minutes }} min
+            </span>
+        </div>
+
+        <h2 class="svc-name">{{ service.name }}</h2>
+        <p class="svc-price">Q{{ service.price|floatformat:'-2' }}</p>
+
+        {% if service.feature_items %}
+            <ul class="svc-features">
+                {% for item in service.feature_items %}
+                    <li class="{% if item.included %}is-included{% else %}is-excluded{% endif %}">
+                        <i class="fa-solid {% if item.included %}fa-check{% else %}fa-xmark{% endif %}" aria-hidden="true"></i>
+                        <span>{{ item.text }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        <a class="svc-cta" href="{% url 'appointment_create' %}?service={{ service.pk }}">
+            Agendar {{ service.name }}
+        </a>
+    </div>
+</article>

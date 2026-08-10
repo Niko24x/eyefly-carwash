@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h1>{{ page_title }}</h1>
+    <p>{{ page_description }}</p>
+
+    <form method="post" class="form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="card-actions">
+            <button type="submit">{{ submit_label }}</button>
+            <a class="button button-secondary" href="{% url 'appointment_list' %}">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

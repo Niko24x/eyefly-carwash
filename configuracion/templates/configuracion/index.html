@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Configuración | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div>
+        <h1>Configuración</h1>
+        <p>Administra la disponibilidad del sistema, horarios por edificio y días festivos.</p>
+    </div>
+</section>
+
+<section class="settings-grid">
+    <article class="settings-card">
+        <p class="eyebrow">Sistema</p>
+        <h2>Configuración general</h2>
+        <p>Define cuántas citas se pueden atender al mismo tiempo.</p>
+        <a class="button" href="{% url 'configuracion:general_settings' %}">Abrir</a>
+    </article>
+
+    <article class="settings-card">
+        <p class="eyebrow">Calendario</p>
+        <h2>Días festivos</h2>
+        <p>Registra fechas en las que no se pueden agendar citas.</p>
+        <a class="button" href="{% url 'configuracion:holiday_list' %}">Abrir</a>
+    </article>
+
+    <article class="settings-card">
+        <p class="eyebrow">Edificios</p>
+        <h2>Horarios por edificio</h2>
+        <p>Configura los días y horas disponibles para agendar en cada edificio.</p>
+        <a class="button" href="{% url 'configuracion:building_schedule_list' %}">Abrir</a>
+    </article>
+</section>
+{% endblock %}

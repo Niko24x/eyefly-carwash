@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Horario de {{ building.name }} | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="card">
+    <p class="breadcrumb">
+        <a href="{% url 'configuracion:index' %}">Configuración</a> /
+        <a href="{% url 'configuracion:building_schedule_list' %}">Horarios</a> /
+        {{ building.name }}
+    </p>
+    <h1>Horario de {{ building.name }}</h1>
+    <p>Marca los días disponibles y define el rango de horas en los que se pueden agendar citas.</p>
+
+    <form method="post" class="form">
+        {% csrf_token %}
+        {{ formset.management_form }}
+
+        <div class="schedule-grid">
+            {% for weekday, form in schedule_forms %}
+                <article class="schedule-day-card">
+                    <h2>{{ weekday }}</h2>
+                    {% for hidden in form.hidden_fields %}
+                        {{ hidden }}
+                    {% endfor %}
+                    <p>
+                        <label for="{{ form.is_active.id_for_label }}">
+                            {{ form.is_active }}
+                            {{ form.is_active.label }}
+                        </label>
+                    </p>
+                    <p>
+                        <label for="{{ form.start_time.id_for_label }}">{{ form.start_time.label }}</label>
+                        {{ form.start_time }}
+                    </p>
+                    <p>
+                        <label for="{{ form.end_time.id_for_label }}">{{ form.end_time.label }}</label>
+                        {{ form.end_time }}
+                    </p>
+                    {% if form.non_field_errors %}
+                        <p class="form-error">{{ form.non_field_errors|join:', ' }}</p>
+                    {% endif %}
+                </article>
+            {% endfor %}
+        </div>
+
+        <div class="card-actions">
+            <button type="submit">Guardar horario</button>
+            <a class="button button-secondary" href="{% url 'configuracion:building_schedule_list' %}">Volver</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends 'registration/auth_base.html' %}
+
+{% block title %}Iniciar sesión | Lavado de Autos{% endblock %}
+
+{% block auth_subtitle %}Accede para ver tus reservas{% endblock %}
+
+{% block tab_login_active %}is-active{% endblock %}
+
+{% block auth_body %}
+<form method="post" class="auth-form">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+        <div class="auth-alert">
+            {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+        </div>
+    {% endif %}
+
+    {% for field in form %}
+        <div class="auth-field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% for error in field.errors %}<p class="auth-error">{{ error }}</p>{% endfor %}
+            {% if field.help_text %}<p class="auth-help">{{ field.help_text }}</p>{% endif %}
+        </div>
+    {% endfor %}
+
+    <button type="submit" class="auth-submit">Iniciar Sesión</button>
+</form>
+
+<div class="auth-guest">
+    <p class="auth-guest-text">¿Quieres agendar sin cuenta?</p>
+    <a class="auth-guest-link" href="{% url 'appointment_create' %}">Agendar como invitado →</a>
+</div>
+{% endblock %}

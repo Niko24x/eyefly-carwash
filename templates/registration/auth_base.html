@@ -1,0 +1,66 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Mi Cuenta | Lavado de Autos{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'vendor/font-awesome/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body class="auth-page">
+    <header class="auth-topbar">
+        <div class="auth-topbar-inner">
+            <a class="auth-topbar-brand" href="{% url 'home' %}" aria-label="Inicio">
+                <span class="auth-logo-frame auth-logo-frame-sm">
+                    <img
+                        class="auth-logo-image"
+                        src="https://slick-car-cleaning-b-hi2a.bolt.host/images/brand/WhatsApp_Image_2026-06-03_at_15.49.50_(1).jpeg"
+                        alt="Slick Logo"
+                    >
+                </span>
+                <span class="auth-wordmark">SLICK</span>
+            </a>
+            <nav class="auth-topbar-nav">
+                <a class="auth-topbar-link auth-topbar-link-muted" href="{% url 'home' %}">Inicio</a>
+                <a class="auth-topbar-link auth-topbar-link-muted" href="{% url 'service_pricing' %}">Servicios</a>
+                <a class="auth-topbar-link auth-topbar-link-muted" href="{% url 'appointment_create' %}">Agendar</a>
+                <a class="auth-topbar-link" href="{% url 'login' %}">Mi Cuenta</a>
+                <a class="auth-topbar-cta" href="{% url 'appointment_create' %}">Agendar Ahora</a>
+            </nav>
+            <button class="auth-menu-button" type="button" aria-label="Abrir menú">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </header>
+
+    <main class="auth-main">
+        <div class="auth-shell">
+            <div class="auth-intro">
+                <span class="auth-logo-frame auth-logo-frame-lg">
+                    <img
+                        class="auth-logo-image"
+                        src="https://slick-car-cleaning-b-hi2a.bolt.host/images/brand/WhatsApp_Image_2026-06-03_at_15.49.50_(1).jpeg"
+                        alt="Slick"
+                    >
+                </span>
+                <h1 class="auth-title">MI CUENTA</h1>
+                <p class="auth-subtitle">{% block auth_subtitle %}Accede para ver tus reservas{% endblock %}</p>
+            </div>
+
+            <section class="auth-card">
+                <div class="auth-tabs">
+                    <a class="auth-tab {% block tab_login_active %}{% endblock %}" href="{% url 'login' %}">Iniciar Sesión</a>
+                    <a class="auth-tab {% block tab_register_active %}{% endblock %}" href="{% url 'register' %}">Crear Cuenta</a>
+                </div>
+
+                {% block auth_body %}{% endblock %}
+            </section>
+        </div>
+    </main>
+
+    <script src="{% static 'js/messages.js' %}"></script>
+</body>
+</html>

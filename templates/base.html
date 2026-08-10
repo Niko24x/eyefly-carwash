@@ -1,0 +1,62 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Lavado de Autos{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'vendor/font-awesome/css/all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="{% url 'appointment_list' %}">Lavado de Autos</a>
+        <nav>
+            {% if user.is_authenticated %}
+                {% if user.is_staff %}
+                    <a class="menu-button" href="{% url 'dashboard:index' %}">Dashboard</a>
+                    <a href="{% url 'user_list' %}">Usuarios</a>
+                    <a href="{% url 'notification_list' %}">Notificaciones</a>
+                    <a href="{% url 'configuracion:index' %}">Configuración</a>
+                {% endif %}
+                <a href="{% url 'appointment_list' %}">Citas</a>
+                <a href="{% url 'appointment_create' %}">Nueva cita</a>
+                {% if user.is_staff %}
+                    <a href="{% url 'building_list' %}">Edificios</a>
+                    <a href="{% url 'service_list' %}">Servicios</a>
+                {% endif %}
+                <a href="{% url 'account_profile' %}">Mi cuenta</a>
+                <form method="post" action="{% url 'logout' %}" class="logout-form">
+                    {% csrf_token %}
+                    <button type="submit">Cerrar sesión</button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}">Iniciar sesión</a>
+                <a href="{% url 'register' %}">Registrarse</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    {% if messages %}
+        <div class="message-toasts" id="message-toasts">
+            {% for message in messages %}
+                <div class="message-toast message-toast-{{ message.tags|default:'info' }}" role="status">
+                    <div class="message-toast-body">
+                        <p class="message-toast-text">{{ message }}</p>
+                        <button type="button" class="message-toast-close" aria-label="Cerrar">×</button>
+                    </div>
+                    <div class="message-toast-progress" aria-hidden="true">
+                        <span class="message-toast-progress-bar"></span>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+    <script src="{% static 'js/messages.js' %}"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

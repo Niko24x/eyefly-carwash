@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Mis citas | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div>
+        <h1>Mis citas de lavado</h1>
+        <p>Agenda y revisa tus próximas citas de lavado de autos.</p>
+    </div>
+    <a class="button" href="{% url 'appointment_create' %}">Agendar nueva cita</a>
+</section>
+
+{% if appointments %}
+    <section class="appointments">
+        {% for appointment in appointments %}
+            <article class="appointment-card{% if appointment.status == 'cancelled' %} appointment-card-cancelled{% endif %}">
+                <h2>{{ appointment.first_name }} {{ appointment.last_name }}</h2>
+                <p>
+                    <strong>Creada por:</strong>
+                    {% if user.is_staff and appointment.user_id != user.id %}
+                        <a href="{% url 'user_update' appointment.user_id %}">{{ appointment.user.username }}</a>
+                    {% elif appointment.user_id == user.id %}
+                        Tú
+                    {% else %}
+                        {{ appointment.user.username }}
+                    {% endif %}
+                </p>
+                <p>
+                    <strong>Estado:</strong>
+                    <span class="status-badge status-badge-{{ appointment.status }}">
+                        {{ appointment.get_status_display }}
+                    </span>
+                </p>
+                <p><strong>Edificio:</strong> {{ appointment.building.name }}</p>
+                <p><strong>Servicio:</strong> {{ appointment.service.name }}</p>
+                <p><strong>Teléfono:</strong> {{ appointment.phone_number }}</p>
+                <p><strong>Correo electrónico:</strong> {{ appointment.email }}</p>
+                <p><strong>Fecha:</strong> {{ appointment.date|date:"d/m/Y" }}</p>
+                <p><strong>Hora:</strong> {{ appointment.time|time:"H:i" }}</p>
+
+                {% if user.is_staff %}
+                    <p>
+                        <strong>Pago:</strong>
+                        <span class="status-badge status-badge-payment-{{ appointment.payment_status_label|slugify }}">
+                            {{ appointment.payment_status_label }}
+                        </span>
+                        {% if appointment.is_paid and appointment.payment_type %}
+                            · {{ appointment.get_payment_type_display }}
+                            {% if appointment.payment_reference %}
+                                · Ref. {{ appointment.payment_reference }}
+                            {% endif %}
+                        {% endif %}
+                    </p>
+                {% endif %}
+
+                {% if appointment.is_reviewed %}
+                    <div class="appointment-review">
+                        <p>
+                            <strong>{% if appointment.user_id == user.id %}Tu calificación{% else %}Calificación{% endif %}:</strong>
+                            <span class="review-stars" aria-label="{{ appointment.rating }} de 5">
+                                {% for i in "12345" %}
+                                    <span class="{% if forloop.counter <= appointment.rating %}is-filled{% endif %}">★</span>
+                                {% endfor %}
+                            </span>
+                            <span class="review-score">{{ appointment.rating }}/5</span>
+                        </p>
+                        {% if appointment.review_comment %}
+                            <p class="review-comment">“{{ appointment.review_comment }}”</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+
+                <div class="card-actions">
+                    {% if appointment.pk in manageable_appointment_ids and appointment.status == 'active' and not appointment.is_past %}
+                        <a class="button button-secondary" href="{% url 'appointment_reschedule' appointment.pk %}">
+                            Reagendar
+                        </a>
+                        <a class="button button-secondary" href="{% url 'appointment_cancel' appointment.pk %}">
+                            Cancelar
+                        </a>
+                        {% if user.is_staff %}
+                            <a class="button button-secondary" href="{% url 'appointment_update' appointment.pk %}">
+                                Editar
+                            </a>
+                        {% endif %}
+                    {% elif user.is_staff and appointment.status == 'active' %}
+                        <a class="button button-secondary" href="{% url 'appointment_update' appointment.pk %}">
+                            Editar
+                        </a>
+                    {% endif %}
+                    {% if user.is_staff %}
+                        <a class="button button-secondary" href="{% url 'appointment_payment' appointment.pk %}">
+                            {% if appointment.is_paid %}Editar pago{% else %}Registrar pago{% endif %}
+                        </a>
+                    {% endif %}
+                    {% if appointment.pk in manageable_appointment_ids and appointment.can_be_reviewed %}
+                        <a class="button" href="{% url 'appointment_review' appointment.pk %}">
+                            Calificar
+                        </a>
+                    {% endif %}
+                </div>
+            </article>
+        {% endfor %}
+    </section>
+{% else %}
+    <section class="card">
+        <h2>Aún no tienes citas</h2>
+        <p>Crea tu primera cita seleccionando una fecha y una hora disponible.</p>
+        <a class="button" href="{% url 'appointment_create' %}">Agendar cita</a>
+    </section>
+{% endif %}
+{% endblock %}

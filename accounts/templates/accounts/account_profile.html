@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Mi cuenta | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div>
+        <h1>Mi cuenta</h1>
+        <p>Consulta la información de tu perfil y el resumen de tus citas.</p>
+    </div>
+    <a class="button button-secondary" href="{% url 'appointment_list' %}">Ver mis citas</a>
+</section>
+
+<section class="card">
+    <div class="card-header">
+        <p class="eyebrow">Perfil</p>
+        <a class="button button-secondary" href="{% url 'account_profile_edit' %}">Editar perfil</a>
+    </div>
+    <dl class="appointment-detail-list">
+        <div>
+            <dt>Usuario</dt>
+            <dd>{{ user.username }}</dd>
+        </div>
+        <div>
+            <dt>Nombre</dt>
+            <dd>{{ user.first_name|default:"—" }} {{ user.last_name|default:"" }}</dd>
+        </div>
+        <div>
+            <dt>Correo electrónico</dt>
+            <dd>{{ user.email|default:"Sin correo registrado" }}</dd>
+        </div>
+        <div>
+            <dt>Teléfono</dt>
+            <dd>
+                {% if profile.formatted_phone %}
+                    {{ profile.formatted_phone }}
+                {% else %}
+                    Sin teléfono registrado
+                {% endif %}
+            </dd>
+        </div>
+        <div>
+            <dt>Vehículo</dt>
+            <dd>
+                {% if profile.car_brand or profile.car_model or profile.car_plate %}
+                    {{ profile.car_brand }} {{ profile.car_model }}{% if profile.car_color %} · {{ profile.car_color }}{% endif %}{% if profile.car_plate %} · {{ profile.car_plate }}{% endif %}
+                {% else %}
+                    Sin vehículo registrado
+                {% endif %}
+            </dd>
+        </div>
+        <div>
+            <dt>Parqueo</dt>
+            <dd>
+                {% if profile.parking_level or profile.parking_number %}
+                    {{ profile.parking_level }}{% if profile.parking_level and profile.parking_number %} · {% endif %}{{ profile.parking_number }}
+                {% else %}
+                    Sin parqueo registrado
+                {% endif %}
+            </dd>
+        </div>
+        <div>
+            <dt>Fecha de registro</dt>
+            <dd>{{ user.date_joined|date:"d/m/Y H:i" }}</dd>
+        </div>
+        <div>
+            <dt>Estado de la cuenta</dt>
+            <dd>
+                {% if user.is_active %}
+                    Activa
+                {% else %}
+                    Inactiva
+                {% endif %}
+                {% if user.is_staff %}
+                    · Administrador
+                {% endif %}
+            </dd>
+        </div>
+    </dl>
+</section>
+
+<section class="stat-grid account-stats">
+    <article class="stat-card">
+        <span>Citas activas</span>
+        <strong>{{ active_appointments }}</strong>
+        <p>Próximas citas sin cancelar</p>
+    </article>
+    <article class="stat-card">
+        <span>Total de citas</span>
+        <strong>{{ total_appointments }}</strong>
+        <p>Incluye citas canceladas</p>
+    </article>
+</section>
+{% endblock %}

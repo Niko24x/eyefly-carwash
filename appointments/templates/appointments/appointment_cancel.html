@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Cancelar cita | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h1>Cancelar cita</h1>
+    <p>¿Confirmas que deseas cancelar esta cita?</p>
+
+    <p><strong>Cliente:</strong> {{ appointment.first_name }} {{ appointment.last_name }}</p>
+    <p><strong>Edificio:</strong> {{ appointment.building.name }}</p>
+    <p><strong>Servicio:</strong> {{ appointment.service.name }}</p>
+    <p><strong>Fecha:</strong> {{ appointment.date|date:"d/m/Y" }} {{ appointment.time|time:"H:i" }}</p>
+
+    <form method="post" class="form">
+        {% csrf_token %}
+        <div class="card-actions">
+            <button type="submit">Confirmar cancelación</button>
+            <a class="button button-secondary" href="{% url 'appointment_list' %}">Volver</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

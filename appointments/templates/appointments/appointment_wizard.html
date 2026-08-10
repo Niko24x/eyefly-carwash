@@ -1,0 +1,281 @@
+{% extends 'public_base.html' %}
+{% load static %}
+
+{% block title %}Agendar lavado | Slick Car Cleaning{% endblock %}
+
+{% block nav_agendar %}is-active{% endblock %}
+
+{% block content %}
+<form
+    method="post"
+    id="wizard-form"
+    class="wizard-form"
+    data-api-url="{% url 'availability_api' %}"
+    {% if initial_service %}data-initial-service="{{ initial_service }}"{% endif %}
+    {% if form.is_bound %}data-start-step="4"{% endif %}
+>
+    {% csrf_token %}
+    {{ booking_services|json_script:"wizard-services-data" }}
+    {{ booking_buildings|json_script:"wizard-buildings-data" }}
+    {{ booking_membership_credits|json_script:"wizard-membership-data" }}
+
+    <div class="wizard-hidden-fields" hidden>
+        {{ form.building }}
+        {{ form.service }}
+        {{ form.date }}
+        {{ form.time }}
+    </div>
+
+    <header class="wizard-header">
+        <div class="wizard-header-inner">
+            <h1 class="wizard-title">AGENDAR LAVADO</h1>
+
+            <div class="wizard-steps" id="wizard-steps">
+                <span class="wizard-dot is-active" data-dot="1">1</span>
+                <span class="wizard-line" data-line="1"></span>
+                <span class="wizard-dot" data-dot="2">2</span>
+                <span class="wizard-line" data-line="2"></span>
+                <span class="wizard-dot" data-dot="3">3</span>
+                <span class="wizard-line" data-line="3"></span>
+                <span class="wizard-dot" data-dot="4">4</span>
+            </div>
+
+            <p class="wizard-step-label">
+                Paso <span id="wizard-step-num">1</span> de 4:
+                <strong id="wizard-step-name">Edificio</strong>
+            </p>
+        </div>
+    </header>
+
+    <div class="wizard-body">
+        {% if form.unavailable_slots %}
+            <div class="wizard-partial" id="wizard-partial">
+                <p class="wizard-partial-title">No se pueden crear todas las citas.</p>
+                <p class="wizard-partial-label">Fechas no disponibles:</p>
+                <ul class="wizard-partial-list wizard-partial-list--blocked">
+                    {% for item in form.unavailable_slots %}
+                        <li>
+                            <strong>{{ item.label }}</strong>
+                            <span>{{ item.reason }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+
+                {% if form.available_dates %}
+                    <p class="wizard-partial-label">
+                        Sí se pueden crear {{ form.available_dates|length }} cita{{ form.available_dates|length|pluralize:"s" }}:
+                    </p>
+                    <ul class="wizard-partial-list wizard-partial-list--ok">
+                        {% for day in form.available_dates %}
+                            <li>{{ day|date:"d/m/Y" }}</li>
+                        {% endfor %}
+                    </ul>
+                    <div class="wizard-partial-actions">
+                        <p class="wizard-partial-question">¿Quieres crear solo las citas disponibles?</p>
+                        <button
+                            type="submit"
+                            class="wizard-partial-confirm"
+                            name="create_available_only"
+                            value="1"
+                        >
+                            Sí, crear las disponibles
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        {% elif form.non_field_errors or form.date.errors or form.time.errors or form.recurrence.errors or form.end_date.errors or form.full_name.errors or form.car_brand.errors or form.parking_level.errors %}
+            <div class="wizard-errors">
+                {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+                {% for error in form.date.errors %}<p>{{ error }}</p>{% endfor %}
+                {% for error in form.time.errors %}<p>{{ error }}</p>{% endfor %}
+                {% if form.recurrence %}{% for error in form.recurrence.errors %}<p>{{ error }}</p>{% endfor %}{% endif %}
+                {% if form.end_date %}{% for error in form.end_date.errors %}<p>{{ error }}</p>{% endfor %}{% endif %}
+                {% if form.full_name %}{% for error in form.full_name.errors %}<p>{{ error }}</p>{% endfor %}{% endif %}
+                {% for error in form.car_brand.errors %}<p>{{ error }}</p>{% endfor %}
+                {% for error in form.parking_level.errors %}<p>{{ error }}</p>{% endfor %}
+            </div>
+        {% endif %}
+
+        <section class="wizard-step" data-step="1">
+            <h2 class="wizard-question">¿En qué edificio estás?</h2>
+            <div class="wizard-options" id="wizard-buildings"></div>
+        </section>
+
+        <section class="wizard-step" data-step="2" hidden>
+            <h2 class="wizard-question">¿Qué servicio quieres?</h2>
+            <div class="wizard-options" id="wizard-services"></div>
+        </section>
+
+        <section class="wizard-step" data-step="3" hidden>
+            <h2 class="wizard-question">¿Qué día te queda mejor?</h2>
+            <div class="wizard-schedule">
+                <div class="wizard-calendar">
+                    <div class="wizard-calendar-head">
+                        <button type="button" class="wizard-cal-nav" id="wiz-cal-prev" aria-label="Mes anterior">‹</button>
+                        <h3 class="wizard-cal-month" id="wiz-cal-month"></h3>
+                        <button type="button" class="wizard-cal-nav" id="wiz-cal-next" aria-label="Mes siguiente">›</button>
+                    </div>
+                    <div class="wizard-calendar-grid" id="wiz-cal-grid"></div>
+                    <p class="wizard-helper" id="wiz-cal-helper">Cargando fechas disponibles...</p>
+                </div>
+
+                <div class="wizard-schedule-slots" id="wizard-schedule-slots" hidden>
+                    <h3 class="wizard-slots-title" id="wiz-slots-title">Horarios</h3>
+                    <div class="wizard-slots" id="wiz-slots"></div>
+                    <p class="wizard-helper" id="wiz-slots-helper">No hay horarios disponibles para esta fecha.</p>
+                </div>
+
+                {% if form.recurrence %}
+                <div class="wizard-recurrence wizard-frequency" id="wizard-frequency" hidden role="group" aria-labelledby="wizard-frequency-title">
+                    <p class="wizard-frequency-title" id="wizard-frequency-title">
+                        <i class="fa-solid fa-arrows-rotate" aria-hidden="true"></i>
+                        Frecuencia
+                    </p>
+                    <div class="wizard-recurrence-native" aria-hidden="true">
+                        {{ form.recurrence }}
+                    </div>
+                    <div class="wizard-frequency-grid">
+                        <button class="wizard-frequency-option" type="button" data-recurrence-option="unica">
+                            <strong>Solo esta vez</strong>
+                            <span>Una sola cita</span>
+                        </button>
+                        <button class="wizard-frequency-option" type="button" data-recurrence-option="semanal">
+                            <strong>Cada semana</strong>
+                            <span>52 citas / año</span>
+                        </button>
+                        <button class="wizard-frequency-option" type="button" data-recurrence-option="quincenal">
+                            <strong>Cada 15 días</strong>
+                            <span>26 citas / año</span>
+                        </button>
+                        <button class="wizard-frequency-option" type="button" data-recurrence-option="mensual">
+                            <strong>Cada mes</strong>
+                            <span>12 citas / año</span>
+                        </button>
+                    </div>
+                    {% if form.recurrence.errors %}<span class="wizard-field-error">{{ form.recurrence.errors|join:', ' }}</span>{% endif %}
+                    <p class="wizard-field" id="wizard-end-date-field" hidden>
+                        <label for="{{ form.end_date.id_for_label }}">{{ form.end_date.label }}</label>
+                        {{ form.end_date }}
+                        <span class="wizard-field-hint" id="wizard-end-date-hint"></span>
+                        {% if form.end_date.errors %}<span class="wizard-field-error">{{ form.end_date.errors|join:', ' }}</span>{% endif %}
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="wizard-step" data-step="4" hidden>
+            <h2 class="wizard-question">Datos de tu vehículo</h2>
+
+            <div class="wizard-summary" id="wiz-summary"></div>
+
+            <div class="wizard-fields wizard-vehicle-form">
+                {{ form.first_name }}
+                {{ form.last_name }}
+
+                <div class="wizard-field-grid">
+                    <p class="wizard-field">
+                        <label for="{{ form.full_name.id_for_label }}">
+                            {{ form.full_name.label }} <span class="wizard-required" aria-hidden="true">*</span>
+                        </label>
+                        {{ form.full_name }}
+                        {% if form.full_name.errors %}<span class="wizard-field-error">{{ form.full_name.errors|join:', ' }}</span>{% endif %}
+                    </p>
+                    <p class="wizard-field">
+                        <label for="{{ form.email.id_for_label }}">
+                            {{ form.email.label }} <span class="wizard-required" aria-hidden="true">*</span>
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}<span class="wizard-field-error">{{ form.email.errors|join:', ' }}</span>{% endif %}
+                    </p>
+                    <div class="wizard-field">
+                        <label class="phone-field-label" for="{{ form.phone_local_number.id_for_label }}">
+                            WhatsApp <span class="wizard-required" aria-hidden="true">*</span>
+                        </label>
+                        <div class="phone-input-group phone-input-group--composite">
+                            <div class="phone-code-wrap">{{ form.phone_country_code }}</div>
+                            <div class="phone-number-wrap">{{ form.phone_local_number }}</div>
+                        </div>
+                        {% if form.phone_country_code.errors %}<span class="wizard-field-error">{{ form.phone_country_code.errors|join:', ' }}</span>{% endif %}
+                        {% if form.phone_local_number.errors %}<span class="wizard-field-error">{{ form.phone_local_number.errors|join:', ' }}</span>{% endif %}
+                    </div>
+                    <p class="wizard-field">
+                        <label for="{{ form.car_brand.id_for_label }}">
+                            {{ form.car_brand.label }} <span class="wizard-required" aria-hidden="true">*</span>
+                        </label>
+                        {{ form.car_brand }}
+                        {% if form.car_brand.errors %}<span class="wizard-field-error">{{ form.car_brand.errors|join:', ' }}</span>{% endif %}
+                    </p>
+                    <p class="wizard-field">
+                        <label for="{{ form.car_model.id_for_label }}">
+                            {{ form.car_model.label }} <span class="wizard-required" aria-hidden="true">*</span>
+                        </label>
+                        {{ form.car_model }}
+                        {% if form.car_model.errors %}<span class="wizard-field-error">{{ form.car_model.errors|join:', ' }}</span>{% endif %}
+                    </p>
+                    <p class="wizard-field">
+                        <label for="{{ form.car_color.id_for_label }}">
+                            {{ form.car_color.label }} <span class="wizard-required" aria-hidden="true">*</span>
+                        </label>
+                        {{ form.car_color }}
+                        {% if form.car_color.errors %}<span class="wizard-field-error">{{ form.car_color.errors|join:', ' }}</span>{% endif %}
+                    </p>
+                    <p class="wizard-field">
+                        <label for="{{ form.car_plate.id_for_label }}">
+                            {{ form.car_plate.label }} <span class="wizard-required" aria-hidden="true">*</span>
+                        </label>
+                        {{ form.car_plate }}
+                        {% if form.car_plate.errors %}<span class="wizard-field-error">{{ form.car_plate.errors|join:', ' }}</span>{% endif %}
+                    </p>
+                </div>
+
+                <div class="wizard-parking">
+                    <p class="wizard-parking-title">
+                        <span class="wizard-parking-icon" aria-hidden="true">P</span>
+                        Información de parqueo
+                    </p>
+                    <div class="wizard-field-grid wizard-field-grid--parking">
+                        <p class="wizard-field">
+                            <label for="{{ form.parking_level.id_for_label }}">
+                                {{ form.parking_level.label }} <span class="wizard-required" aria-hidden="true">*</span>
+                            </label>
+                            {{ form.parking_level }}
+                            {% if form.parking_level.errors %}<span class="wizard-field-error">{{ form.parking_level.errors|join:', ' }}</span>{% endif %}
+                        </p>
+                        <p class="wizard-field">
+                            <label for="{{ form.parking_number.id_for_label }}">
+                                {{ form.parking_number.label }} <span class="wizard-required" aria-hidden="true">*</span>
+                            </label>
+                            {{ form.parking_number }}
+                            {% if form.parking_number.errors %}<span class="wizard-field-error">{{ form.parking_number.errors|join:', ' }}</span>{% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <p class="wizard-field wizard-field--full">
+                    <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}<span class="wizard-field-error">{{ form.notes.errors|join:', ' }}</span>{% endif %}
+                </p>
+            </div>
+        </section>
+    </div>
+
+    <div class="wizard-nav">
+        <button type="button" class="wizard-back" id="wizard-back" hidden>
+            <i class="fa-solid fa-chevron-left" aria-hidden="true"></i> Atrás
+        </button>
+        <button type="button" class="wizard-next" id="wizard-next" disabled>
+            Siguiente <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+        </button>
+        <button type="submit" class="wizard-submit" id="wizard-submit" hidden>
+            {{ submit_label }}
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/phone-fields.js' %}"></script>
+<script src="{% static 'js/appointment-wizard.js' %}"></script>
+{% endblock %}

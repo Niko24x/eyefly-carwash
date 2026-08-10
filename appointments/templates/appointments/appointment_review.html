@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Calificar cita | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="card review-card">
+    <p class="eyebrow">Reseña</p>
+    <h1>Califica tu cita</h1>
+    <p>
+        {{ appointment.service.name }} · {{ appointment.building.name }} ·
+        {{ appointment.date|date:"d/m/Y" }} {{ appointment.time|time:"H:i" }}
+    </p>
+
+    <form method="post" class="form review-form">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="form-errors">
+                {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+            </div>
+        {% endif %}
+
+        <fieldset class="review-rating">
+            <legend>{{ form.rating.label }} <span class="wizard-required" aria-hidden="true">*</span></legend>
+            <div class="review-rating-options">
+                {% for radio in form.rating %}
+                    <label class="review-rating-option">
+                        {{ radio.tag }}
+                        <span>{{ radio.choice_label }}</span>
+                    </label>
+                {% endfor %}
+            </div>
+            {% if form.rating.errors %}
+                <span class="field-error">{{ form.rating.errors|join:', ' }}</span>
+            {% endif %}
+            <p class="review-hint">1 = malo · 5 = excelente</p>
+        </fieldset>
+
+        <p>
+            <label for="{{ form.review_comment.id_for_label }}">{{ form.review_comment.label }}</label>
+            {{ form.review_comment }}
+            {% if form.review_comment.errors %}
+                <span class="field-error">{{ form.review_comment.errors|join:', ' }}</span>
+            {% endif %}
+        </p>
+
+        <div class="card-actions">
+            <button type="submit">Enviar calificación</button>
+            <a class="button button-secondary" href="{% url 'appointment_list' %}">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

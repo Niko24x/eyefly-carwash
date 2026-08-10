@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}Configuración general | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="card">
+    <p class="breadcrumb"><a href="{% url 'configuracion:index' %}">Configuración</a> / General</p>
+    <h1>Configuración general</h1>
+    <p>Parámetros globales que aplican a todas las citas del sistema.</p>
+
+    <form method="post" class="form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="card-actions">
+            <button type="submit">Guardar cambios</button>
+            <a class="button button-secondary" href="{% url 'configuracion:index' %}">Volver</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

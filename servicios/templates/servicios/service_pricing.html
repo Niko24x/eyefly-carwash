@@ -1,0 +1,80 @@
+{% extends 'public_base.html' %}
+
+{% block title %}Nuestros Servicios | Slick Car Cleaning{% endblock %}
+
+{% block nav_servicios %}is-active{% endblock %}
+
+{% block content %}
+<section class="pub-hero pub-hero--blue">
+    <div class="pub-hero-content">
+        <span class="pub-eyebrow">Precios claros</span>
+        <h1 class="pub-title">NUESTROS<br><span class="pub-title-accent">SERVICIOS</span></h1>
+        <p class="pub-lead">Sin sorpresas. Precios fijos. Calidad garantizada.</p>
+    </div>
+</section>
+
+<div class="pub-divider svc-page-divider" aria-hidden="true"></div>
+
+<section class="svc-page-section">
+    <div class="svc-page-inner">
+        {% if services %}
+            <div class="svc-grid svc-grid--pricing">
+                {% for service in services %}
+                    {% include 'servicios/_service_card.html' %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <section class="svc-empty">
+                <h2>Aún no hay servicios disponibles</h2>
+                <p>Vuelve pronto para conocer nuestros planes de lavado.</p>
+            </section>
+        {% endif %}
+    </div>
+</section>
+
+{% if membership_plans %}
+<section class="mem-section">
+    <div class="mem-section-inner">
+        <div class="mem-section-head">
+            <span class="home-eyebrow">Planes mensuales</span>
+            <h2 class="home-heading home-heading--light">MEMBRESÍAS</h2>
+            <p class="mem-section-lead">Elige el plan que mejor se adapte a tu rutina y ahorra en cada lavado.</p>
+        </div>
+        <div class="mem-grid">
+            {% for plan in membership_plans %}
+                {% include 'membresia/_membership_card.html' %}
+            {% endfor %}
+        </div>
+        <p class="mem-stripe-note">
+            <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+            Las membresías con integración de Stripe estarán disponibles pronto. ¡Mantente atento!
+        </p>
+    </div>
+</section>
+{% endif %}
+
+<section class="svc-faq-section">
+    <div class="svc-faq-inner">
+        <div class="svc-faq-head">
+            <span class="home-eyebrow">Preguntas frecuentes</span>
+            <h2 class="home-heading home-heading--light">FAQ</h2>
+        </div>
+        <div class="svc-faq-list">
+            {% for item in service_faq %}
+                <article class="svc-faq-item">
+                    <span class="svc-faq-icon" aria-hidden="true">
+                        <i class="fa-solid fa-circle-question"></i>
+                    </span>
+                    <div>
+                        <h3 class="svc-faq-question">{{ item.question }}</h3>
+                        <p class="svc-faq-answer">{{ item.answer }}</p>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+        <div class="svc-faq-cta-wrap">
+            <a class="svc-faq-cta" href="{% url 'appointment_create' %}">Agendar Ahora →</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

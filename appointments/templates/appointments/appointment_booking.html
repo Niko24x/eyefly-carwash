@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }} | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="booking-page">
+    <form
+        method="post"
+        class="booking-form"
+        id="booking-form"
+        data-mode="{{ booking_mode }}"
+        data-api-url="{% url 'availability_api' %}"
+        {% if fixed_building_id %}data-fixed-building="{{ fixed_building_id }}"{% endif %}
+        {% if initial_date %}data-initial-date="{{ initial_date }}"{% endif %}
+        {% if initial_time %}data-initial-time="{{ initial_time }}"{% endif %}
+        {% if appointment %}data-exclude-id="{{ appointment.pk }}"{% endif %}
+    >
+        {% csrf_token %}
+        {{ booking_services|json_script:"booking-services-data" }}
+        {{ booking_buildings|json_script:"booking-buildings-data" }}
+
+        {% if form.non_field_errors %}
+            <div class="booking-errors">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="booking-widget">
+            <aside class="booking-panel booking-panel-details">
+                <div class="booking-brand">
+                    <span class="booking-brand-mark"></span>
+                    <span class="booking-brand-name">Lavado de Autos</span>
+                </div>
+
+                {% if booking_mode == 'reschedule' and appointment %}
+                    <p class="booking-eyebrow">{{ appointment.service.name }}</p>
+                    <h1 class="booking-title">{{ page_title }}</h1>
+                    <p class="booking-duration"><span class="booking-icon" aria-hidden="true">🕐</span> 30 min</p>
+                    <p class="booking-description" id="service-description">
+                        {{ appointment.service.description|default:"Selecciona una nueva fecha y hora para tu cita de lavado." }}
+                    </p>
+                    <dl class="booking-summary">
+                        <div>
+                            <dt>Edificio</dt>
+                            <dd>{{ appointment.building.name }}</dd>
+                        </div>
+                        <div>
+                            <dt>Cliente</dt>
+                            <dd>{{ appointment.first_name }} {{ appointment.last_name }}</dd>
+                        </div>
+                    </dl>
+                {% else %}
+                    <p class="booking-eyebrow" id="service-eyebrow">Servicio</p>
+                    <h1 class="booking-title" id="service-title">{{ page_title }}</h1>
+                    <p class="booking-duration"><span class="booking-icon" aria-hidden="true">🕐</span> 30 min</p>
+                    <p class="booking-description" id="service-description">
+                        Selecciona el edificio, servicio, fecha y hora para agendar tu cita de lavado.
+                    </p>
+
+                    <div class="booking-fields">
+                        <p>
+                            <label for="{{ form.building.id_for_label }}">{{ form.building.label }}</label>
+                            {{ form.building }}
+                            {% if form.building.errors %}
+                                <span class="field-error">{{ form.building.errors|join:', ' }}</span>
+                            {% endif %}
+                        </p>
+                        <p>
+                            <label for="{{ form.service.id_for_label }}">{{ form.service.label }}</label>
+                            {{ form.service }}
+                            {% if form.service.errors %}
+                                <span class="field-error">{{ form.service.errors|join:', ' }}</span>
+                            {% endif %}
+                        </p>
+                        <p>
+                            <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}
+                                <span class="field-error">{{ form.first_name.errors|join:', ' }}</span>
+                            {% endif %}
+                        </p>
+                        <p>
+                            <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}
+                                <span class="field-error">{{ form.last_name.errors|join:', ' }}</span>
+                            {% endif %}
+                        </p>
+                        <div class="phone-field">
+                            <label class="phone-field-label" for="{{ form.phone_local_number.id_for_label }}">Teléfono</label>
+                            <div class="phone-input-group phone-input-group--composite">
+                                <div class="phone-code-wrap">
+                                    {{ form.phone_country_code }}
+                                </div>
+                                <div class="phone-number-wrap">
+                                    {{ form.phone_local_number }}
+                                </div>
+                            </div>
+                            {% if form.phone_country_code.errors %}
+                                <span class="field-error">{{ form.phone_country_code.errors|join:', ' }}</span>
+                            {% endif %}
+                            {% if form.phone_local_number.errors %}
+                                <span class="field-error">{{ form.phone_local_number.errors|join:', ' }}</span>
+                            {% endif %}
+                        </div>
+                        <p>
+                            <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <span class="field-error">{{ form.email.errors|join:', ' }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                {% endif %}
+
+                <p class="booking-timezone">
+                    Zona horaria: <strong>{{ timezone_label }}</strong>
+                </p>
+
+                <div class="booking-selection-summary" id="booking-selection-summary" hidden>
+                    <p class="booking-eyebrow">Selección</p>
+                    <p id="selected-datetime-label"></p>
+                </div>
+            </aside>
+
+            <section class="booking-panel booking-panel-calendar">
+                <div class="booking-calendar-header">
+                    <button type="button" class="booking-nav-button" id="calendar-prev" aria-label="Mes anterior">‹</button>
+                    <h2 id="calendar-month-label"></h2>
+                    <button type="button" class="booking-nav-button" id="calendar-next" aria-label="Mes siguiente">›</button>
+                </div>
+
+                <div class="booking-calendar-grid" id="booking-calendar-grid"></div>
+
+                <p class="booking-helper" id="calendar-helper">
+                    {% if fixed_building_id %}
+                        Cargando fechas disponibles...
+                    {% else %}
+                        Selecciona un edificio para ver fechas disponibles.
+                    {% endif %}
+                </p>
+            </section>
+
+            <section class="booking-panel booking-panel-slots">
+                <h2 class="booking-slots-title" id="slots-day-label">Horarios</h2>
+                <div class="booking-slots-list" id="booking-slots-list"></div>
+                <p class="booking-helper" id="slots-helper">Elige una fecha para ver horarios disponibles.</p>
+            </section>
+        </div>
+
+        {{ form.date }}
+        {{ form.time }}
+        {% if form.date.errors or form.time.errors %}
+            <div class="booking-errors">
+                {% for error in form.date.errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+                {% for error in form.time.errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="booking-actions">
+            <button type="submit" class="button" id="booking-submit" disabled>{{ submit_label }}</button>
+            <a class="button button-secondary" href="{% url 'appointment_list' %}">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/phone-fields.js' %}"></script>
+<script src="{% static 'js/appointment-booking.js' %}"></script>
+{% endblock %}

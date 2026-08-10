@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block title %}Pago de cita | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="card review-card">
+    <p class="eyebrow">Administración</p>
+    <h1>Registrar pago</h1>
+    <p>
+        {{ appointment.first_name }} {{ appointment.last_name }} ·
+        {{ appointment.service.name }} · {{ appointment.building.name }} ·
+        {{ appointment.date|date:"d/m/Y" }} {{ appointment.time|time:"H:i" }}
+    </p>
+    <p><strong>Monto:</strong> Q{{ appointment.amount }}</p>
+    {% if appointment.uses_membership %}
+        <p class="helper-text">Esta cita está cubierta por membresía.</p>
+    {% endif %}
+
+    <form method="post" class="form payment-form">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="form-errors">
+                {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+            </div>
+        {% endif %}
+
+        <p class="payment-toggle">
+            <label class="payment-check">
+                {{ form.is_paid }}
+                <span>{{ form.is_paid.label }}</span>
+            </label>
+        </p>
+
+        <p>
+            <label for="{{ form.payment_type.id_for_label }}">{{ form.payment_type.label }}</label>
+            {{ form.payment_type }}
+            {% if form.payment_type.errors %}
+                <span class="field-error">{{ form.payment_type.errors|join:', ' }}</span>
+            {% endif %}
+            <span class="field-hint">Tarjeta estará disponible próximamente.</span>
+        </p>
+
+        <p>
+            <label for="{{ form.payment_reference.id_for_label }}">{{ form.payment_reference.label }}</label>
+            {{ form.payment_reference }}
+            {% if form.payment_reference.errors %}
+                <span class="field-error">{{ form.payment_reference.errors|join:', ' }}</span>
+            {% endif %}
+        </p>
+
+        <div class="card-actions">
+            <button type="submit">Guardar pago</button>
+            <a class="button button-secondary" href="{% url 'appointment_list' %}">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

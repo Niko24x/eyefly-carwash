@@ -1,0 +1,43 @@
+<div class="table-actions">
+    <button
+        type="button"
+        class="icon-button"
+        data-notification-message-button
+        data-message-id="notification-message-{{ notification.pk }}"
+        data-registered-at="{{ notification.created_at|date:'d/m/Y H:i' }}"
+        aria-label="Ver mensaje"
+        title="Ver mensaje"
+    >
+        <i class="fa-solid fa-message" aria-hidden="true"></i>
+    </button>
+    <a
+        class="icon-button"
+        href="{% url 'appointment_update' notification.appointment_id %}"
+        aria-label="Editar cita"
+        title="Editar cita"
+    >
+        <i class="fa-solid fa-pen" aria-hidden="true"></i>
+    </a>
+    <form method="post" action="{% url 'notification_resend_email' notification.pk %}">
+        {% csrf_token %}
+        <button
+            type="submit"
+            class="icon-button"
+            aria-label="Reenviar correo"
+            title="Reenviar correo"
+        >
+            <i class="fa-solid fa-envelope" aria-hidden="true"></i>
+        </button>
+    </form>
+    <form method="post" action="{% url 'notification_resend_whatsapp' notification.pk %}">
+        {% csrf_token %}
+        <button
+            type="submit"
+            class="icon-button icon-button-whatsapp"
+            aria-label="Reenviar WhatsApp"
+            title="Reenviar WhatsApp"
+        >
+            <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+        </button>
+    </form>
+</div>

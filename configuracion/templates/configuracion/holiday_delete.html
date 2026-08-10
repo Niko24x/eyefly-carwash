@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block title %}Eliminar día festivo | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h1>¿Eliminar día festivo?</h1>
+    <p>
+        Se eliminará <strong>{{ holiday.name }}</strong> ({{ holiday.date|date:"d/m/Y" }}).
+        Las citas podrán agendarse nuevamente en esa fecha.
+    </p>
+
+    <form method="post" class="card-actions">
+        {% csrf_token %}
+        <button type="submit">Confirmar eliminación</button>
+        <a class="button button-secondary" href="{% url 'configuracion:holiday_list' %}">Cancelar</a>
+    </form>
+</section>
+{% endblock %}

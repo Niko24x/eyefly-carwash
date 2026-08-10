@@ -1,0 +1,185 @@
+{% extends 'public_base.html' %}
+{% load static %}
+
+{% block title %}Slick Car Cleaning | Tu auto limpio, sin salir del edificio{% endblock %}
+
+{% block nav_inicio %}is-active{% endblock %}
+
+{% block content %}
+<section class="home-hero">
+    <span class="home-hero-star home-hero-star--one" aria-hidden="true"><i class="fa-solid fa-star"></i></span>
+    <span class="home-hero-star home-hero-star--two" aria-hidden="true"><i class="fa-solid fa-star"></i></span>
+
+    <div class="home-hero-content">
+        <img
+            class="pub-brand-logo pub-brand-logo--lg home-hero-logo"
+            src="{% static 'images/brand/logo.png' %}"
+            alt="Slick Car Cleaning"
+            width="140"
+            height="140"
+        >
+
+        <span class="home-hero-badge">
+            <i class="fa-solid fa-star" aria-hidden="true"></i>
+            Guatemala City
+            <i class="fa-solid fa-star" aria-hidden="true"></i>
+        </span>
+
+        <h1 class="home-title">SLICK<br><span class="home-title-accent">CAR</span><br>CLEANING</h1>
+        <p class="home-lead">Tu auto limpio, sin salir del edificio.</p>
+
+        <div class="home-cta-row">
+            <a class="btn-primary" href="{% url 'appointment_create' %}">Agendar mi lavado</a>
+            <a class="btn-outline" href="{% url 'service_pricing' %}">Ver precios</a>
+        </div>
+
+        <div class="home-stats">
+            <div class="home-stat">
+                <span class="home-stat-num">{{ washed_cars_display }}</span>
+                <span class="home-stat-label">Autos lavados</span>
+            </div>
+            <div class="home-stat">
+                <span class="home-stat-num">{{ active_buildings_count }}</span>
+                <span class="home-stat-label">Edificios</span>
+            </div>
+            <div class="home-stat">
+                <span class="home-stat-num">{{ average_rating_display }}</span>
+                <span class="home-stat-label">Promedio</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="pub-divider home-hero-divider" aria-hidden="true"></div>
+</section>
+
+<section class="home-section home-section--lace">
+    <div class="home-section-inner">
+        <div class="home-section-head">
+            <span class="home-eyebrow">Proceso</span>
+            <h2 class="home-heading home-heading--dark">CÓMO FUNCIONA</h2>
+        </div>
+
+        <div class="home-steps">
+            <article class="home-step">
+                <span class="home-step-num">01</span>
+                <span class="home-step-icon"><i class="fa-solid fa-building" aria-hidden="true"></i></span>
+                <h3 class="home-step-title">Elige tu edificio</h3>
+                <p class="home-step-text">Selecciona tu condominio o edificio de la lista de ubicaciones disponibles.</p>
+            </article>
+            <article class="home-step">
+                <span class="home-step-num">02</span>
+                <span class="home-step-icon"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i></span>
+                <h3 class="home-step-title">Escoge fecha y hora</h3>
+                <p class="home-step-text">Elige el día y horario que mejor se adapte a tu agenda.</p>
+            </article>
+            <article class="home-step">
+                <span class="home-step-num">03</span>
+                <span class="home-step-icon"><i class="fa-solid fa-credit-card" aria-hidden="true"></i></span>
+                <h3 class="home-step-title">Paga y listo</h3>
+                <p class="home-step-text">Pago seguro con tarjeta. Nuestro equipo llegará puntual.</p>
+            </article>
+        </div>
+    </div>
+</section>
+
+<section class="home-section home-section--blue">
+    <div class="home-section-inner">
+        <div class="home-section-head">
+            <span class="home-eyebrow">Lo que ofrecemos</span>
+            <h2 class="home-heading home-heading--light">NUESTROS SERVICIOS</h2>
+        </div>
+
+        {% if services %}
+            <div class="home-svc-grid">
+                {% for service in services %}
+                    {% include 'servicios/_service_card_home.html' %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="home-empty">Pronto publicaremos nuestros planes.</p>
+        {% endif %}
+    </div>
+</section>
+
+{% if buildings %}
+<section class="home-section home-section--lace">
+    <div class="home-section-inner">
+        <div class="home-section-head">
+            <span class="home-eyebrow">Ubicaciones</span>
+            <h2 class="home-heading home-heading--dark">EDIFICIOS DISPONIBLES</h2>
+        </div>
+
+        <div class="home-buildings">
+            {% for building in buildings %}
+                <article class="home-building home-building--{% cycle 'blue' 'red' 'dark' %}{% if building.image %} home-building--has-image{% endif %}">
+                    <div class="home-building-banner"{% if building.image %} style="background-image: url('{{ building.image.url }}');"{% endif %}>
+                        {% if not building.image %}
+                            <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                        {% endif %}
+                    </div>
+                    <div class="home-building-body">
+                        <h3 class="home-building-name">{{ building.name }}</h3>
+                        <p class="home-building-address">{{ building.address|linebreaksbr }}</p>
+                        <div class="home-building-footer">
+                            <span class="home-building-meta">{{ building.autos_por_turno }} autos/turno</span>
+                            <a class="home-building-cta" href="{% url 'appointment_create' %}">Agendar</a>
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<section class="home-section home-section--dark">
+    <div class="home-section-inner home-section-inner--narrow">
+        <div class="home-section-head">
+            <span class="home-eyebrow">Resultados</span>
+            <h2 class="home-heading home-heading--light">LO QUE DICEN LOS NÚMEROS</h2>
+        </div>
+
+        <div class="home-numbers">
+            <div class="home-number">
+                <span class="home-number-value">{{ washed_cars_display }}</span>
+                <span class="home-number-label">Autos lavados</span>
+                <span class="home-number-note">y contando</span>
+            </div>
+            <div class="home-number">
+                <span class="home-number-value">{{ active_buildings_count }}</span>
+                <span class="home-number-label">Edificios activos</span>
+                <span class="home-number-note">en Guatemala City</span>
+            </div>
+            <div class="home-number">
+                <span class="home-number-value">{{ average_rating_display }}</span>
+                <span class="home-number-label">Promedio de rating</span>
+                <span class="home-number-note">basado en reseñas reales</span>
+            </div>
+        </div>
+
+        <div class="home-gallery">
+            <div class="home-gallery-item">
+                <img src="{% static 'images/gallery/brand-1.jpg' %}" alt="Slick Car Cleaning" loading="lazy">
+            </div>
+            <div class="home-gallery-item">
+                <img src="{% static 'images/gallery/brand-2.jpg' %}" alt="Slick Car Cleaning" loading="lazy">
+            </div>
+            <div class="home-gallery-item">
+                <img src="{% static 'images/gallery/brand-3.jpg' %}" alt="Slick Car Cleaning" loading="lazy">
+            </div>
+            <div class="home-gallery-item">
+                <img src="{% static 'images/gallery/brand-4.jpg' %}" alt="Slick Car Cleaning" loading="lazy">
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="home-cta">
+    <div class="home-cta-inner">
+        <span class="home-cta-star" aria-hidden="true"><i class="fa-solid fa-star"></i></span>
+        <h2 class="home-cta-title">¿LISTO PARA UN AUTO SLICK?</h2>
+        <p class="home-cta-text">Agenda en menos de 2 minutos. Sin salir de tu edificio.</p>
+        <a class="btn-light" href="{% url 'appointment_create' %}">Agendar mi lavado →</a>
+    </div>
+</section>
+{% endblock %}

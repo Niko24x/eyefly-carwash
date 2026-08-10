@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notificaciones | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div>
+        <h1>Notificaciones</h1>
+        <p>Consulta el historial de notificaciones enviadas por cita y el estado de cada canal.</p>
+    </div>
+</section>
+
+<section class="dashboard-section">
+    <div class="table-wrap">
+        <table class="dashboard-table">
+            <thead>
+                <tr>
+                    <th>Evento</th>
+                    <th>#</th>
+                    <th>Cliente</th>
+                    <th>Edificio</th>
+                    <th>Servicio</th>
+                    <th>Cita</th>
+                    <th>Correo</th>
+                    <th>WhatsApp</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for notification in notifications %}
+                    <template id="notification-message-{{ notification.pk }}">{{ notification.message }}</template>
+                    <tr>
+                        <td>{{ notification.get_event_type_display }}</td>
+                        <td>#{{ notification.appointment_id }}</td>
+                        <td>
+                            {{ notification.appointment.first_name }}
+                            {{ notification.appointment.last_name }}
+                        </td>
+                        <td>{{ notification.appointment.building.name }}</td>
+                        <td>{{ notification.appointment.service.name }}</td>
+                        <td>
+                            {{ notification.appointment.date|date:"d/m/Y" }}
+                            {{ notification.appointment.time|time:"H:i" }}
+                        </td>
+                        <td class="delivery-cell">
+                            {% for delivery in notification.deliveries.all %}
+                                {% if delivery.channel == 'email' %}
+                                    <span class="delivery-destination">{{ delivery.destination }}</span>
+                                    {% include 'notificaciones/partials/delivery_status.html' with delivery=delivery %}
+                                {% endif %}
+                            {% empty %}
+                                —
+                            {% endfor %}
+                        </td>
+                        <td class="delivery-cell">
+                            {% for delivery in notification.deliveries.all %}
+                                {% if delivery.channel == 'whatsapp' %}
+                                    <span class="delivery-destination">{{ delivery.destination }}</span>
+                                    {% include 'notificaciones/partials/delivery_status.html' with delivery=delivery %}
+                                {% endif %}
+                            {% empty %}
+                                —
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% include 'notificaciones/partials/notification_actions.html' %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="9">Aún no hay notificaciones registradas.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<div class="modal-backdrop" data-modal="notification-message" hidden>
+    <section
+        class="modal-card notification-message-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="notification-message-title"
+    >
+        <button class="modal-close" type="button" data-close-modal aria-label="Cerrar">×</button>
+        <p class="eyebrow">Mensaje</p>
+        <h2 id="notification-message-title">Detalle de la notificación</h2>
+        <dl class="notification-message-meta">
+            <div>
+                <dt>Registrada</dt>
+                <dd data-notification-registered-at></dd>
+            </div>
+        </dl>
+        <div class="modal-content notification-message-content" data-notification-message-content></div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/notification-list.js' %}"></script>
+{% endblock %}

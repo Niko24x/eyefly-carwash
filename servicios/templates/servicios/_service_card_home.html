@@ -1,0 +1,25 @@
+<article class="home-svc-card home-svc-card--{{ service.accent }}">
+    <div class="home-svc-card-body">
+        {% if service.badge %}<span class="home-svc-badge">{{ service.badge }}</span>{% endif %}
+        <h3 class="home-svc-name">{{ service.name }}</h3>
+        <p class="home-svc-price">Q{{ service.price|floatformat:'-2' }}</p>
+
+        {% if service.feature_items %}
+            <ul class="home-svc-features">
+                {% for item in service.feature_items %}
+                    {% if item.included %}
+                        <li>
+                            <i class="fa-solid fa-check" aria-hidden="true"></i>
+                            <span>{{ item.text }}</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+    <div class="home-svc-card-footer">
+        <a class="home-svc-cta" href="{% url 'appointment_create' %}?service={{ service.pk }}">
+            Agendar Ahora
+        </a>
+    </div>
+</article>

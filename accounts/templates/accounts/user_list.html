@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Usuarios | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div>
+        <h1>Usuarios</h1>
+        <p>Administra las cuentas registradas en el sistema.</p>
+    </div>
+    <a class="button" href="{% url 'user_create' %}">Registrar usuario</a>
+</section>
+
+<section class="card">
+    <div class="table-wrap">
+        <table class="dashboard-table">
+            <thead>
+                <tr>
+                    <th>Usuario</th>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Citas</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for account in users %}
+                    <tr>
+                        <td>{{ account.username }}</td>
+                        <td>{{ account.first_name }} {{ account.last_name }}</td>
+                        <td>{{ account.email|default:"Sin correo" }}</td>
+                        <td>{{ account.appointment_count }}</td>
+                        <td>
+                            {% if account.is_active %}
+                                <span class="status-badge status-badge-active">Activo</span>
+                            {% else %}
+                                <span class="status-badge status-badge-cancelled">Inactivo</span>
+                            {% endif %}
+                            {% if account.is_staff %}
+                                <span class="status-badge status-badge-staff">Administrador</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a class="button button-secondary" href="{% url 'user_update' account.pk %}">Editar</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="6">Aún no hay usuarios registrados.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

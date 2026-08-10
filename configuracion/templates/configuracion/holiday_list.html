@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}Días festivos | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div>
+        <p class="breadcrumb"><a href="{% url 'configuracion:index' %}">Configuración</a> / Días festivos</p>
+        <h1>Días festivos</h1>
+        <p>Las fechas registradas aquí no estarán disponibles para agendar citas.</p>
+    </div>
+</section>
+
+<section class="card">
+    <h2>Agregar día festivo</h2>
+    <form method="post" class="form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="card-actions">
+            <button type="submit">Agregar</button>
+        </div>
+    </form>
+</section>
+
+<section class="dashboard-section">
+    <div class="section-heading">
+        <h2>Fechas registradas</h2>
+        <a href="{% url 'configuracion:index' %}">Volver a configuración</a>
+    </div>
+
+    {% if holidays %}
+        <div class="table-wrap">
+            <table class="dashboard-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Nombre</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for holiday in holidays %}
+                        <tr>
+                            <td>{{ holiday.date|date:"d/m/Y" }}</td>
+                            <td>{{ holiday.name }}</td>
+                            <td>
+                                <a class="button button-secondary" href="{% url 'configuracion:holiday_delete' holiday.pk %}">
+                                    Eliminar
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="helper-text">Aún no hay días festivos registrados.</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+
+
+{% block title %}Editar perfil | Lavado de Autos{% endblock %}
+
+
+
+{% block content %}
+
+<section class="card">
+
+    <h1>Editar perfil</h1>
+
+    <p>Actualiza tu información personal, vehículo y parqueo.</p>
+
+
+
+    <form method="post" class="form profile-edit-form">
+
+        {% csrf_token %}
+
+
+
+        <p>
+
+            <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+
+            {{ form.first_name }}
+
+            {% if form.first_name.errors %}
+
+                <span class="field-error">{{ form.first_name.errors|join:', ' }}</span>
+
+            {% endif %}
+
+        </p>
+
+
+
+        <p>
+
+            <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+
+            {{ form.last_name }}
+
+            {% if form.last_name.errors %}
+
+                <span class="field-error">{{ form.last_name.errors|join:', ' }}</span>
+
+            {% endif %}
+
+        </p>
+
+
+
+        <p>
+
+            <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+
+            {{ form.email }}
+
+            {% if form.email.errors %}
+
+                <span class="field-error">{{ form.email.errors|join:', ' }}</span>
+
+            {% endif %}
+
+        </p>
+
+
+
+        <div class="phone-field">
+            <label class="phone-field-label" for="{{ form.phone_local_number.id_for_label }}">Teléfono</label>
+            <div class="phone-input-group phone-input-group--composite">
+                <div class="phone-code-wrap">
+                    {{ form.phone_country_code }}
+                </div>
+                <div class="phone-number-wrap">
+                    {{ form.phone_local_number }}
+                </div>
+            </div>
+            {% if form.phone_country_code.errors %}
+                <span class="field-error">{{ form.phone_country_code.errors|join:', ' }}</span>
+            {% endif %}
+            {% if form.phone_local_number.errors %}
+                <span class="field-error">{{ form.phone_local_number.errors|join:', ' }}</span>
+            {% endif %}
+        </div>
+
+        <fieldset class="profile-vehicle-fields">
+            <legend>Datos del vehículo</legend>
+            <p>
+                <label for="{{ form.car_brand.id_for_label }}">{{ form.car_brand.label }}</label>
+                {{ form.car_brand }}
+                {% if form.car_brand.errors %}<span class="field-error">{{ form.car_brand.errors|join:', ' }}</span>{% endif %}
+            </p>
+            <p>
+                <label for="{{ form.car_model.id_for_label }}">{{ form.car_model.label }}</label>
+                {{ form.car_model }}
+                {% if form.car_model.errors %}<span class="field-error">{{ form.car_model.errors|join:', ' }}</span>{% endif %}
+            </p>
+            <p>
+                <label for="{{ form.car_color.id_for_label }}">{{ form.car_color.label }}</label>
+                {{ form.car_color }}
+                {% if form.car_color.errors %}<span class="field-error">{{ form.car_color.errors|join:', ' }}</span>{% endif %}
+            </p>
+            <p>
+                <label for="{{ form.car_plate.id_for_label }}">{{ form.car_plate.label }}</label>
+                {{ form.car_plate }}
+                {% if form.car_plate.errors %}<span class="field-error">{{ form.car_plate.errors|join:', ' }}</span>{% endif %}
+            </p>
+            <p>
+                <label for="{{ form.parking_level.id_for_label }}">{{ form.parking_level.label }}</label>
+                {{ form.parking_level }}
+                {% if form.parking_level.errors %}<span class="field-error">{{ form.parking_level.errors|join:', ' }}</span>{% endif %}
+            </p>
+            <p>
+                <label for="{{ form.parking_number.id_for_label }}">{{ form.parking_number.label }}</label>
+                {{ form.parking_number }}
+                {% if form.parking_number.errors %}<span class="field-error">{{ form.parking_number.errors|join:', ' }}</span>{% endif %}
+            </p>
+        </fieldset>
+
+        <div class="card-actions">
+
+            <button type="submit">Guardar cambios</button>
+
+            <a class="button button-secondary" href="{% url 'account_profile' %}">Cancelar</a>
+
+        </div>
+
+    </form>
+
+</section>
+
+{% endblock %}
+
+
+
+{% block extra_scripts %}
+
+<script src="{% static 'js/phone-fields.js' %}"></script>
+
+{% endblock %}
+
