@@ -3,6 +3,7 @@ from django.db import models
 
 class NotificationEventType(models.TextChoices):
     APPOINTMENT_CREATED = 'appointment_created', 'Cita creada'
+    APPOINTMENT_UPDATED = 'appointment_updated', 'Cita actualizada'
 
 
 class DeliveryChannel(models.TextChoices):

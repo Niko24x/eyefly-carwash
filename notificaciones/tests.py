@@ -1,7 +1,8 @@
 from datetime import date, time, timedelta
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.core import mail
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -16,12 +17,17 @@ from .models import (
     NotificationDelivery,
     NotificationEventType,
 )
-from .services import build_appointment_created_message, create_appointment_created_notification
+from .services import (
+    build_appointment_created_message,
+    create_appointment_created_notification,
+    create_appointment_updated_notification,
+)
 
 
 User = get_user_model()
 
 
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
 class NotificationServiceTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
@@ -60,7 +66,7 @@ class NotificationServiceTests(TestCase):
         self.assertIn('5551234567', message)
         self.assertIn('ana@example.com', message)
 
-    def test_create_appointment_created_notification_creates_pending_deliveries(self):
+    def test_create_appointment_created_notification_sends_email(self):
         appointment = Appointment.objects.create(
             user=self.user,
             building=self.building,
@@ -73,6 +79,7 @@ class NotificationServiceTests(TestCase):
             time=time(9, 30),
         )
         Notification.objects.filter(appointment=appointment).delete()
+        mail.outbox.clear()
 
         notification = create_appointment_created_notification(appointment)
 
@@ -86,12 +93,29 @@ class NotificationServiceTests(TestCase):
 
         self.assertEqual(email_delivery.destination, 'maria@example.com')
         self.assertEqual(whatsapp_delivery.destination, '5551112222')
-        self.assertEqual(email_delivery.status, DeliveryStatus.PENDING)
+        self.assertEqual(email_delivery.status, DeliveryStatus.SENT)
+        self.assertIsNotNone(email_delivery.sent_at)
         self.assertEqual(whatsapp_delivery.status, DeliveryStatus.PENDING)
-        self.assertIsNone(email_delivery.sent_at)
         self.assertIsNone(whatsapp_delivery.sent_at)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['maria@example.com'])
+        self.assertIn('Confirmación de cita', mail.outbox[0].subject)
+
+    def test_create_appointment_updated_notification_sends_email(self):
+        Notification.objects.filter(appointment=self.appointment).delete()
+        mail.outbox.clear()
+
+        notification = create_appointment_updated_notification(self.appointment)
+
+        self.assertEqual(notification.event_type, NotificationEventType.APPOINTMENT_UPDATED)
+        self.assertIn('fue actualizada', notification.message)
+        email_delivery = notification.deliveries.get(channel=DeliveryChannel.EMAIL)
+        self.assertEqual(email_delivery.status, DeliveryStatus.SENT)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('actualizada', mail.outbox[0].subject)
 
 
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
 class AppointmentNotificationSignalTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
@@ -112,6 +136,7 @@ class AppointmentNotificationSignalTests(TestCase):
 
     def test_appointment_create_triggers_notification(self):
         self.client.login(username='cliente', password='password123')
+        mail.outbox.clear()
 
         target = timezone.localdate() + timedelta(days=1)
         while target.weekday() >= 5:
@@ -150,7 +175,7 @@ class AppointmentNotificationSignalTests(TestCase):
             notification.deliveries.filter(
                 channel=DeliveryChannel.EMAIL,
                 destination='maria@example.com',
-                status=DeliveryStatus.PENDING,
+                status=DeliveryStatus.SENT,
             ).exists()
         )
         self.assertTrue(
@@ -160,8 +185,12 @@ class AppointmentNotificationSignalTests(TestCase):
                 status=DeliveryStatus.PENDING,
             ).exists()
         )
+        self.assertEqual(len(mail.outbox), 1)
 
-    def test_appointment_update_does_not_create_notification(self):
+    def test_appointment_update_creates_updated_notification(self):
+        target = timezone.localdate() + timedelta(days=1)
+        while target.weekday() >= 5:
+            target += timedelta(days=1)
         appointment = Appointment.objects.create(
             user=self.user,
             building=self.building,
@@ -170,13 +199,14 @@ class AppointmentNotificationSignalTests(TestCase):
             last_name='Lopez',
             phone_number='5551234567',
             email='ana@example.com',
-            date=date(2026, 6, 12),
+            date=target,
             time=time(10, 0),
         )
         Notification.objects.all().delete()
+        mail.outbox.clear()
 
         self.client.login(username='cliente', password='password123')
-        self.client.post(
+        response = self.client.post(
             reverse('appointment_update', args=[appointment.id]),
             {
                 'first_name': 'Ana',
@@ -186,14 +216,24 @@ class AppointmentNotificationSignalTests(TestCase):
                 'phone_country_code': '502',
                 'phone_local_number': '55512345',
                 'email': 'ana@example.com',
-                'date': '2026-06-12',
+                'date': target.isoformat(),
                 'time': '10:30',
             },
         )
 
-        self.assertFalse(Notification.objects.filter(appointment=appointment).exists())
+        self.assertRedirects(response, reverse('appointment_list'))
+        notification = Notification.objects.get(appointment=appointment)
+        self.assertEqual(notification.event_type, NotificationEventType.APPOINTMENT_UPDATED)
+        self.assertTrue(
+            notification.deliveries.filter(
+                channel=DeliveryChannel.EMAIL,
+                status=DeliveryStatus.SENT,
+            ).exists()
+        )
+        self.assertEqual(len(mail.outbox), 1)
 
 
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
 class StaffAppointmentAccessTests(TestCase):
     def setUp(self):
         self.staff_user = User.objects.create_user(
@@ -240,6 +280,7 @@ class StaffAppointmentAccessTests(TestCase):
         self.assertContains(response, 'Editar cita')
 
 
+@override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
 class NotificationListViewTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
@@ -274,6 +315,7 @@ class NotificationListViewTests(TestCase):
             date=date(2026, 6, 12),
             time=time(10, 0),
         )
+        Notification.objects.filter(appointment=self.appointment).delete()
         self.notification = Notification.objects.create(
             appointment=self.appointment,
             event_type=NotificationEventType.APPOINTMENT_CREATED,
@@ -337,6 +379,7 @@ class NotificationListViewTests(TestCase):
         email_delivery = self.notification.deliveries.get(channel=DeliveryChannel.EMAIL)
         email_delivery.status = DeliveryStatus.SENT
         email_delivery.save(update_fields=['status'])
+        mail.outbox.clear()
 
         response = self.client.post(
             reverse('notification_resend_email', args=[self.notification.pk])
@@ -344,8 +387,10 @@ class NotificationListViewTests(TestCase):
 
         self.assertRedirects(response, reverse('notification_list'))
         email_delivery.refresh_from_db()
-        self.assertEqual(email_delivery.status, DeliveryStatus.PENDING)
-        self.assertIsNone(email_delivery.sent_at)
+        self.assertEqual(email_delivery.status, DeliveryStatus.SENT)
+        self.assertIsNotNone(email_delivery.sent_at)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['ana@example.com'])
 
     def test_staff_user_can_resend_whatsapp_notification(self):
         self.client.login(username='admin', password='password123')

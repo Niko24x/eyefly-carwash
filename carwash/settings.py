@@ -10,10 +10,13 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
+import sys
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+TESTING = 'test' in sys.argv
 
 
 # Quick-start development settings - unsuitable for production
@@ -136,3 +139,29 @@ LOGIN_URL = 'login'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# Email (Sight SMTP by default; override with SMTP_* env vars)
+_SMTP_SECURE = os.environ.get('SMTP_SECURE', 'false').strip().lower() in {
+    '1',
+    'true',
+    'yes',
+    'on',
+}
+
+EMAIL_BACKEND = os.environ.get(
+    'EMAIL_BACKEND',
+    (
+        'django.core.mail.backends.locmem.EmailBackend'
+        if TESTING
+        else 'django.core.mail.backends.smtp.EmailBackend'
+    ),
+)
+EMAIL_HOST = os.environ.get('SMTP_HOST', '147.182.161.236')
+EMAIL_PORT = int(os.environ.get('SMTP_PORT', '1025'))
+EMAIL_HOST_USER = os.environ.get('SMTP_USER', 'sight')
+EMAIL_HOST_PASSWORD = os.environ.get('SMTP_PASS', 'sight')
+EMAIL_USE_TLS = _SMTP_SECURE and EMAIL_PORT == 587
+EMAIL_USE_SSL = _SMTP_SECURE and EMAIL_PORT != 587
+DEFAULT_FROM_EMAIL = os.environ.get('SMTP_FROM', 'app@sight.test')
+SERVER_EMAIL = DEFAULT_FROM_EMAIL

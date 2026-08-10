@@ -16,6 +16,8 @@ from edificios.models import Building
 from membresia.services import find_membership_for_booking, membership_credit_summary
 from servicios.models import Service
 
+from notificaciones.services import create_appointment_updated_notification
+
 from .forms import (
     AppointmentForm,
     AppointmentPaymentForm,
@@ -251,7 +253,8 @@ def appointment_update(request, pk):
             user=request.user,
         )
         if form.is_valid():
-            form.save()
+            updated = form.save()
+            create_appointment_updated_notification(updated)
             messages.success(request, 'La cita fue actualizada correctamente.')
             return redirect('appointment_list')
     else:
@@ -285,7 +288,8 @@ def appointment_reschedule(request, pk):
             booking_ui=True,
         )
         if form.is_valid():
-            form.save()
+            updated = form.save()
+            create_appointment_updated_notification(updated)
             messages.success(request, 'La cita fue reagendada correctamente.')
             return redirect('appointment_list')
     else:
