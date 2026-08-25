@@ -112,9 +112,11 @@ def _booking_context(form, *, booking_mode, appointment=None):
 
     membership_credits = []
     membership_by_service = {}
+    booking_vehicles = []
     booking_user = getattr(form, 'booking_user', None)
     if booking_user and booking_user.is_authenticated:
         membership_credits = membership_credit_summary(booking_user)
+        booking_vehicles = list(booking_user.vehicles.all())
         for service in services:
             subscription = find_membership_for_booking(
                 booking_user,
@@ -139,6 +141,19 @@ def _booking_context(form, *, booking_mode, appointment=None):
             for service in services
         ],
         'booking_membership_credits': membership_credits,
+        'booking_vehicles': [
+            {
+                'id': vehicle.id,
+                'label': str(vehicle),
+                'brand': vehicle.brand,
+                'model': vehicle.model,
+                'color': vehicle.color,
+                'plate': vehicle.plate,
+                'parking_level': vehicle.parking_level,
+                'parking_number': vehicle.parking_number,
+            }
+            for vehicle in booking_vehicles
+        ],
         'booking_buildings': buildings_data,
         'initial_date': initial_date,
         'initial_time': initial_time,
@@ -156,18 +171,33 @@ def _booking_context(form, *, booking_mode, appointment=None):
 def availability_api(request):
     building = get_object_or_404(Building, pk=request.GET.get('building'))
     exclude_id = request.GET.get('exclude') or None
+    service = None
+    service_id = request.GET.get('service')
+    if service_id:
+        service = get_object_or_404(Service, pk=service_id, is_active=True)
 
     date_param = request.GET.get('date')
     if date_param:
         from datetime import date as date_cls
 
         appointment_date = date_cls.fromisoformat(date_param)
-        slots = get_available_time_slots(building, appointment_date, exclude_id)
+        slots = get_available_time_slots(
+            building,
+            appointment_date,
+            exclude_id,
+            service=service,
+        )
         return JsonResponse({'slots': slots})
 
     year = int(request.GET.get('year', timezone.localdate().year))
     month = int(request.GET.get('month', timezone.localdate().month))
-    dates = get_available_dates_in_month(building, year, month, exclude_id)
+    dates = get_available_dates_in_month(
+        building,
+        year,
+        month,
+        exclude_id,
+        service=service,
+    )
     return JsonResponse({'dates': dates})
 
 

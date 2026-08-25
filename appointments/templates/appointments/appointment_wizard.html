@@ -18,12 +18,28 @@
     {{ booking_services|json_script:"wizard-services-data" }}
     {{ booking_buildings|json_script:"wizard-buildings-data" }}
     {{ booking_membership_credits|json_script:"wizard-membership-data" }}
+    {{ booking_vehicles|json_script:"wizard-vehicles-data" }}
 
     <div class="wizard-hidden-fields" hidden>
         {{ form.building }}
         {{ form.service }}
         {{ form.date }}
         {{ form.time }}
+        {{ form.vehicle }}
+        {{ form.vehicle_assignments }}
+        {{ form.first_name }}
+        {{ form.last_name }}
+        {{ form.full_name }}
+        {{ form.email }}
+        {{ form.phone_country_code }}
+        {{ form.phone_local_number }}
+        {{ form.car_brand }}
+        {{ form.car_model }}
+        {{ form.car_color }}
+        {{ form.car_plate }}
+        {{ form.parking_level }}
+        {{ form.parking_number }}
+        {{ form.notes }}
     </div>
 
     <header class="wizard-header">
@@ -83,7 +99,7 @@
                     </div>
                 {% endif %}
             </div>
-        {% elif form.non_field_errors or form.date.errors or form.time.errors or form.recurrence.errors or form.end_date.errors or form.full_name.errors or form.car_brand.errors or form.parking_level.errors %}
+        {% elif form.non_field_errors or form.date.errors or form.time.errors or form.recurrence.errors or form.end_date.errors or form.full_name.errors or form.email.errors or form.phone_country_code.errors or form.phone_local_number.errors or form.vehicle.errors or form.vehicle_assignments.errors or form.car_brand.errors or form.car_model.errors or form.car_color.errors or form.car_plate.errors or form.parking_level.errors or form.parking_number.errors %}
             <div class="wizard-errors">
                 {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
                 {% for error in form.date.errors %}<p>{{ error }}</p>{% endfor %}
@@ -91,8 +107,17 @@
                 {% if form.recurrence %}{% for error in form.recurrence.errors %}<p>{{ error }}</p>{% endfor %}{% endif %}
                 {% if form.end_date %}{% for error in form.end_date.errors %}<p>{{ error }}</p>{% endfor %}{% endif %}
                 {% if form.full_name %}{% for error in form.full_name.errors %}<p>{{ error }}</p>{% endfor %}{% endif %}
+                {% for error in form.email.errors %}<p>{{ error }}</p>{% endfor %}
+                {% for error in form.phone_country_code.errors %}<p>{{ error }}</p>{% endfor %}
+                {% for error in form.phone_local_number.errors %}<p>{{ error }}</p>{% endfor %}
+                {% if form.vehicle %}{% for error in form.vehicle.errors %}<p>{{ error }}</p>{% endfor %}{% endif %}
+                {% if form.vehicle_assignments %}{% for error in form.vehicle_assignments.errors %}<p>{{ error }}</p>{% endfor %}{% endif %}
                 {% for error in form.car_brand.errors %}<p>{{ error }}</p>{% endfor %}
+                {% for error in form.car_model.errors %}<p>{{ error }}</p>{% endfor %}
+                {% for error in form.car_color.errors %}<p>{{ error }}</p>{% endfor %}
+                {% for error in form.car_plate.errors %}<p>{{ error }}</p>{% endfor %}
                 {% for error in form.parking_level.errors %}<p>{{ error }}</p>{% endfor %}
+                {% for error in form.parking_number.errors %}<p>{{ error }}</p>{% endfor %}
             </div>
         {% endif %}
 
@@ -169,94 +194,26 @@
 
             <div class="wizard-summary" id="wiz-summary"></div>
 
-            <div class="wizard-fields wizard-vehicle-form">
-                {{ form.first_name }}
-                {{ form.last_name }}
-
-                <div class="wizard-field-grid">
-                    <p class="wizard-field">
-                        <label for="{{ form.full_name.id_for_label }}">
-                            {{ form.full_name.label }} <span class="wizard-required" aria-hidden="true">*</span>
-                        </label>
-                        {{ form.full_name }}
-                        {% if form.full_name.errors %}<span class="wizard-field-error">{{ form.full_name.errors|join:', ' }}</span>{% endif %}
-                    </p>
-                    <p class="wizard-field">
-                        <label for="{{ form.email.id_for_label }}">
-                            {{ form.email.label }} <span class="wizard-required" aria-hidden="true">*</span>
-                        </label>
-                        {{ form.email }}
-                        {% if form.email.errors %}<span class="wizard-field-error">{{ form.email.errors|join:', ' }}</span>{% endif %}
-                    </p>
-                    <div class="wizard-field">
-                        <label class="phone-field-label" for="{{ form.phone_local_number.id_for_label }}">
-                            WhatsApp <span class="wizard-required" aria-hidden="true">*</span>
-                        </label>
-                        <div class="phone-input-group phone-input-group--composite">
-                            <div class="phone-code-wrap">{{ form.phone_country_code }}</div>
-                            <div class="phone-number-wrap">{{ form.phone_local_number }}</div>
-                        </div>
-                        {% if form.phone_country_code.errors %}<span class="wizard-field-error">{{ form.phone_country_code.errors|join:', ' }}</span>{% endif %}
-                        {% if form.phone_local_number.errors %}<span class="wizard-field-error">{{ form.phone_local_number.errors|join:', ' }}</span>{% endif %}
-                    </div>
-                    <p class="wizard-field">
-                        <label for="{{ form.car_brand.id_for_label }}">
-                            {{ form.car_brand.label }} <span class="wizard-required" aria-hidden="true">*</span>
-                        </label>
-                        {{ form.car_brand }}
-                        {% if form.car_brand.errors %}<span class="wizard-field-error">{{ form.car_brand.errors|join:', ' }}</span>{% endif %}
-                    </p>
-                    <p class="wizard-field">
-                        <label for="{{ form.car_model.id_for_label }}">
-                            {{ form.car_model.label }} <span class="wizard-required" aria-hidden="true">*</span>
-                        </label>
-                        {{ form.car_model }}
-                        {% if form.car_model.errors %}<span class="wizard-field-error">{{ form.car_model.errors|join:', ' }}</span>{% endif %}
-                    </p>
-                    <p class="wizard-field">
-                        <label for="{{ form.car_color.id_for_label }}">
-                            {{ form.car_color.label }} <span class="wizard-required" aria-hidden="true">*</span>
-                        </label>
-                        {{ form.car_color }}
-                        {% if form.car_color.errors %}<span class="wizard-field-error">{{ form.car_color.errors|join:', ' }}</span>{% endif %}
-                    </p>
-                    <p class="wizard-field">
-                        <label for="{{ form.car_plate.id_for_label }}">
-                            {{ form.car_plate.label }} <span class="wizard-required" aria-hidden="true">*</span>
-                        </label>
-                        {{ form.car_plate }}
-                        {% if form.car_plate.errors %}<span class="wizard-field-error">{{ form.car_plate.errors|join:', ' }}</span>{% endif %}
-                    </p>
-                </div>
-
-                <div class="wizard-parking">
-                    <p class="wizard-parking-title">
-                        <span class="wizard-parking-icon" aria-hidden="true">P</span>
-                        Información de parqueo
-                    </p>
-                    <div class="wizard-field-grid wizard-field-grid--parking">
-                        <p class="wizard-field">
-                            <label for="{{ form.parking_level.id_for_label }}">
-                                {{ form.parking_level.label }} <span class="wizard-required" aria-hidden="true">*</span>
-                            </label>
-                            {{ form.parking_level }}
-                            {% if form.parking_level.errors %}<span class="wizard-field-error">{{ form.parking_level.errors|join:', ' }}</span>{% endif %}
-                        </p>
-                        <p class="wizard-field">
-                            <label for="{{ form.parking_number.id_for_label }}">
-                                {{ form.parking_number.label }} <span class="wizard-required" aria-hidden="true">*</span>
-                            </label>
-                            {{ form.parking_number }}
-                            {% if form.parking_number.errors %}<span class="wizard-field-error">{{ form.parking_number.errors|join:', ' }}</span>{% endif %}
-                        </p>
-                    </div>
-                </div>
-
-                <p class="wizard-field wizard-field--full">
-                    <label for="{{ form.notes.id_for_label }}">{{ form.notes.label }}</label>
-                    {{ form.notes }}
-                    {% if form.notes.errors %}<span class="wizard-field-error">{{ form.notes.errors|join:', ' }}</span>{% endif %}
-                </p>
+            <div class="wizard-vehicle-table-wrap">
+                <table class="wizard-vehicle-table">
+                    <thead>
+                        <tr>
+                            <th>Servicio</th>
+                            <th>Vehículo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="wizard-vehicle-table-body">
+                        <tr>
+                            <td colspan="2">Selecciona fecha y servicio para asignar vehículo.</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <span class="wizard-field-hint">
+                    Elige un vehículo de tu cuenta para cada cita.
+                    <a href="{% url 'account_profile_edit' %}">Agrégalo o edítalo en tu cuenta.</a>
+                </span>
+                {% if form.vehicle.errors %}<span class="wizard-field-error">{{ form.vehicle.errors|join:', ' }}</span>{% endif %}
+                {% if form.vehicle_assignments.errors %}<span class="wizard-field-error">{{ form.vehicle_assignments.errors|join:', ' }}</span>{% endif %}
             </div>
         </section>
     </div>
@@ -276,6 +233,5 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="{% static 'js/phone-fields.js' %}"></script>
 <script src="{% static 'js/appointment-wizard.js' %}"></script>
 {% endblock %}

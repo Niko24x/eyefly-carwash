@@ -2,6 +2,11 @@ from django.db import models
 
 
 class SystemSettings(models.Model):
+    class SlotInterval(models.IntegerChoices):
+        FIFTEEN = 15, 'Cada 15 minutos'
+        THIRTY = 30, 'Cada 30 minutos'
+        SIXTY = 60, 'Cada 60 minutos'
+
     max_concurrent_appointments = models.PositiveIntegerField(
         'citas simultáneas máximas',
         default=1,
@@ -11,6 +16,12 @@ class SystemSettings(models.Model):
         'anticipación máxima en días',
         default=30,
         help_text='Cantidad máxima de días hacia adelante en los que se pueden agendar citas.',
+    )
+    slot_interval_minutes = models.PositiveSmallIntegerField(
+        'intervalo de horarios',
+        choices=SlotInterval.choices,
+        default=SlotInterval.THIRTY,
+        help_text='Define cada cuántos minutos se muestran horarios disponibles para agendar.',
     )
 
     class Meta:

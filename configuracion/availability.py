@@ -7,15 +7,18 @@ from appointments.models import Appointment, AppointmentStatus
 from configuracion.models import BuildingSchedule, Holiday, SystemSettings
 
 
-def _half_hour_slots(start_time, end_time):
+def _time_slots(start_time, end_time, interval_minutes):
     slots = []
     current = datetime.combine(date.today(), start_time)
     while current.time() <= end_time:
         slot_time = current.time().replace(second=0, microsecond=0)
-        if slot_time.minute in (0, 30):
-            slots.append(slot_time)
-        current += timedelta(minutes=30)
+        slots.append(slot_time)
+        current += timedelta(minutes=interval_minutes)
     return slots
+
+
+def slot_interval_minutes():
+    return SystemSettings.load().slot_interval_minutes
 
 
 def _booking_date_limits():
@@ -29,10 +32,29 @@ def _local_now():
     return timezone.localtime()
 
 
+def _service_duration(service):
+    if service is None:
+        return 30
+    return service.duration_minutes or 30
+
+
+def _appointment_interval(appointment):
+    start = datetime.combine(appointment.date, appointment.time)
+    end = start + timedelta(minutes=_service_duration(appointment.service))
+    return start, end
+
+
+def _candidate_interval(appointment_date, appointment_time, service):
+    start = datetime.combine(appointment_date, appointment_time)
+    end = start + timedelta(minutes=_service_duration(service))
+    return start, end
+
+
 def validate_appointment_slot(
     building,
     appointment_date,
     appointment_time,
+    service=None,
     exclude_appointment_id=None,
 ):
     if not building.accepts_appointments:
@@ -79,7 +101,15 @@ def validate_appointment_slot(
     if schedule is None:
         return 'Este edificio no tiene horario disponible para el día seleccionado.'
 
-    if appointment_time < schedule.start_time or appointment_time > schedule.end_time:
+    candidate_start, candidate_end = _candidate_interval(
+        appointment_date,
+        appointment_time,
+        service,
+    )
+    schedule_start = datetime.combine(appointment_date, schedule.start_time)
+    schedule_end = datetime.combine(appointment_date, schedule.end_time)
+
+    if candidate_start < schedule_start or candidate_end > schedule_end:
         return (
             'La hora seleccionada está fuera del horario disponible '
             f'({schedule.start_time.strftime("%H:%M")} - '
@@ -89,19 +119,38 @@ def validate_appointment_slot(
     active_appointments = Appointment.objects.filter(
         building=building,
         date=appointment_date,
-        time=appointment_time,
         status=AppointmentStatus.ACTIVE,
-    )
+    ).select_related('service')
     if exclude_appointment_id:
         active_appointments = active_appointments.exclude(pk=exclude_appointment_id)
 
-    if active_appointments.count() >= building.autos_por_turno:
-        return 'Ya no hay espacios disponibles para esa fecha y hora.'
+    overlapping = []
+    check_points = {candidate_start}
+    for appointment in active_appointments:
+        existing_start, existing_end = _appointment_interval(appointment)
+        if existing_start < candidate_end and candidate_start < existing_end:
+            overlapping.append((existing_start, existing_end))
+            if candidate_start <= existing_start < candidate_end:
+                check_points.add(existing_start)
+
+    for check_point in check_points:
+        concurrent = sum(
+            1
+            for existing_start, existing_end in overlapping
+            if existing_start <= check_point < existing_end
+        )
+        if concurrent >= building.autos_por_turno:
+            return 'Ya no hay espacios disponibles para esa fecha y hora.'
 
     return None
 
 
-def get_available_time_slots(building, appointment_date, exclude_appointment_id=None):
+def get_available_time_slots(
+    building,
+    appointment_date,
+    exclude_appointment_id=None,
+    service=None,
+):
     if not building.accepts_appointments:
         if not exclude_appointment_id:
             return []
@@ -124,12 +173,17 @@ def get_available_time_slots(building, appointment_date, exclude_appointment_id=
         return []
 
     available = []
-    for slot_time in _half_hour_slots(schedule.start_time, schedule.end_time):
+    for slot_time in _time_slots(
+        schedule.start_time,
+        schedule.end_time,
+        slot_interval_minutes(),
+    ):
         if (
             validate_appointment_slot(
                 building,
                 appointment_date,
                 slot_time,
+                service=service,
                 exclude_appointment_id=exclude_appointment_id,
             )
             is None
@@ -143,6 +197,7 @@ def get_available_dates_in_month(
     year,
     month,
     exclude_appointment_id=None,
+    service=None,
 ):
     _, last_day = calendar.monthrange(year, month)
     today, max_booking_date = _booking_date_limits()
@@ -156,7 +211,7 @@ def get_available_dates_in_month(
             building,
             appointment_date,
             exclude_appointment_id=exclude_appointment_id,
+            service=service,
         ):
             available_dates.append(appointment_date.isoformat())
-
     return available_dates

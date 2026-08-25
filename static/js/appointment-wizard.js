@@ -12,6 +12,7 @@
 
     let services = [];
     let buildings = [];
+    let vehicles = [];
     try {
         services = JSON.parse(document.getElementById('wizard-services-data').textContent);
     } catch (error) {
@@ -22,9 +23,16 @@
     } catch (error) {
         console.error('No se pudo leer la configuración de edificios.', error);
     }
+    try {
+        vehicles = JSON.parse(document.getElementById('wizard-vehicles-data').textContent);
+    } catch (error) {
+        console.error('No se pudo leer la configuración de vehículos.', error);
+    }
 
     const buildingInput = form.querySelector('[name="building"]');
     const serviceInput = form.querySelector('[name="service"]');
+    const vehicleInput = form.querySelector('[name="vehicle"]');
+    const vehicleAssignmentsInput = form.querySelector('[name="vehicle_assignments"]');
     const dateInput = form.querySelector('[name="date"]');
     const timeInput = form.querySelector('[name="time"]');
 
@@ -39,6 +47,7 @@
     const slotsContainer = document.getElementById('wiz-slots');
     const slotsHelper = document.getElementById('wiz-slots-helper');
     const summary = document.getElementById('wiz-summary');
+    const vehicleTableBody = document.getElementById('wizard-vehicle-table-body');
 
     const stepNum = document.getElementById('wizard-step-num');
     const stepName = document.getElementById('wizard-step-name');
@@ -62,6 +71,7 @@
     let selectedTime = null;
     let currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     let availableDates = new Set();
+    let vehicleAssignments = {};
 
     function formatPrice(value) {
         const number = Number(value);
@@ -181,8 +191,19 @@
                 </span>
                 ${priceLabel}`;
             button.addEventListener('click', () => {
+                const changed = String(selectedService) !== String(service.id);
                 selectedService = service.id;
                 serviceInput.value = service.id;
+                if (changed) {
+                    selectedDate = null;
+                    selectedTime = null;
+                    dateInput.value = '';
+                    timeInput.value = '';
+                    availableDates = new Set();
+                    updateSlotsSection();
+                    updateFrequencySection();
+                    slotsContainer.innerHTML = '';
+                }
                 renderServices();
                 updateNav();
             });
@@ -232,6 +253,7 @@
         try {
             const response = await fetch(buildApiUrl({
                 building: selectedBuilding,
+                service: selectedService,
                 year: currentMonth.getFullYear(),
                 month: currentMonth.getMonth() + 1,
             }));
@@ -321,6 +343,7 @@
         try {
             const response = await fetch(buildApiUrl({
                 building: selectedBuilding,
+                service: selectedService,
                 date: selectedDate,
             }));
             if (!response.ok) {
@@ -511,25 +534,160 @@
                 <dt>${label}</dt>
                 <dd>${value}</dd>
             </div>`).join('');
+        renderVehicleRows(seriesDates, service);
+    }
+
+    function syncVehicleInputs() {
+        if (vehicleAssignmentsInput) {
+            vehicleAssignmentsInput.value = JSON.stringify(vehicleAssignments);
+        }
+        const firstAssigned = Object.values(vehicleAssignments).find((value) => value);
+        if (vehicleInput) {
+            vehicleInput.value = firstAssigned || '';
+        }
+    }
+
+    function findVehicleById(vehicleId) {
+        if (!vehicleId) {
+            return null;
+        }
+        return vehicles.find((vehicle) => String(vehicle.id) === String(vehicleId)) || null;
+    }
+
+    function selectedSeriesDates() {
+        const cadence = recurrenceInput ? (recurrenceInput.value || 'unica') : 'unica';
+        const endIso = endDateInput ? endDateInput.value : '';
+        return previewRecurrenceDates(selectedDate, endIso, cadence);
+    }
+
+    function allSeriesDatesHaveVehicles() {
+        const dates = selectedSeriesDates();
+        return Boolean(dates.length) && dates.every((dateIso) => vehicleAssignments[dateIso]);
+    }
+
+    function setFieldValue(name, value) {
+        const field = form.querySelector(`[name="${name}"]`);
+        if (field) {
+            field.value = value || '';
+        }
+    }
+
+    function applyVehicleToFields(vehicleId) {
+        const vehicle = findVehicleById(vehicleId);
+        if (!vehicle) {
+            updateNav();
+            return;
+        }
+        setFieldValue('car_brand', vehicle.brand);
+        setFieldValue('car_model', vehicle.model);
+        setFieldValue('car_color', vehicle.color);
+        setFieldValue('car_plate', vehicle.plate);
+        setFieldValue('parking_level', vehicle.parking_level);
+        setFieldValue('parking_number', vehicle.parking_number);
+        updateNav();
+    }
+
+    function renderVehicleRows(seriesDates, service) {
+        if (!vehicleTableBody) {
+            return;
+        }
+        vehicleTableBody.innerHTML = '';
+        if (!seriesDates.length) {
+            const row = document.createElement('tr');
+            row.innerHTML = '<td colspan="2">Selecciona fecha y servicio para asignar vehículo.</td>';
+            vehicleTableBody.appendChild(row);
+            return;
+        }
+
+        const validDateSet = new Set(seriesDates);
+        Object.keys(vehicleAssignments).forEach((dateIso) => {
+            if (!validDateSet.has(dateIso)) {
+                delete vehicleAssignments[dateIso];
+            }
+        });
+
+        seriesDates.forEach((dateIso, index) => {
+            const row = document.createElement('tr');
+            if (index === 0) {
+                row.classList.add('wizard-vehicle-row--primary');
+            }
+            const serviceCell = document.createElement('td');
+            serviceCell.innerHTML = `
+                <div class="wizard-vehicle-service">
+                    <strong>${service ? service.name : 'Servicio seleccionado'}</strong>
+                    <span class="wizard-field-hint">${formatDisplayDate(dateIso)}</span>
+                </div>`;
+
+            const vehicleCell = document.createElement('td');
+            const select = document.createElement('select');
+            select.dataset.vehicleDate = dateIso;
+            const emptyLabel = vehicles.length
+                ? 'Selecciona un vehículo'
+                : 'No hay vehículos en tu cuenta';
+            select.innerHTML = [
+                `<option value="">${emptyLabel}</option>`,
+                ...vehicles.map((vehicle) => (
+                    `<option value="${vehicle.id}">${vehicle.label}</option>`
+                )),
+            ].join('');
+            select.value = vehicleAssignments[dateIso] || (index === 0 && vehicleInput ? vehicleInput.value : '');
+            if (select.value) {
+                vehicleAssignments[dateIso] = select.value;
+            }
+            if (!vehicles.length) {
+                select.disabled = true;
+            }
+            select.addEventListener('change', () => {
+                if (select.value) {
+                    vehicleAssignments[dateIso] = select.value;
+                    applyVehicleToFields(select.value);
+                } else {
+                    delete vehicleAssignments[dateIso];
+                }
+                const applyButton = row.querySelector('.wizard-apply-vehicle');
+                if (applyButton) {
+                    applyButton.disabled = !select.value;
+                }
+                syncVehicleInputs();
+                updateNav();
+            });
+            vehicleCell.appendChild(select);
+
+            if (index === 0 && seriesDates.length > 1) {
+                const applyButton = document.createElement('button');
+                applyButton.type = 'button';
+                applyButton.className = 'wizard-apply-vehicle';
+                applyButton.textContent = 'Este carro para todas las citas';
+                applyButton.disabled = !select.value;
+                applyButton.addEventListener('click', () => {
+                    applyVehicleToAllDates(select.value);
+                });
+                vehicleCell.appendChild(applyButton);
+            }
+
+            row.appendChild(serviceCell);
+            row.appendChild(vehicleCell);
+            vehicleTableBody.appendChild(row);
+        });
+        syncVehicleInputs();
     }
 
     // ----- Validation per step -----
     function customerFieldsFilled() {
-        const requiredNames = [
-            'full_name',
-            'phone_local_number',
-            'email',
-            'car_brand',
-            'car_model',
-            'car_color',
-            'car_plate',
-            'parking_level',
-            'parking_number',
-        ];
-        return requiredNames.every((name) => {
-            const field = form.querySelector(`[name="${name}"]`);
-            return field && field.value.trim() !== '';
+        return allSeriesDatesHaveVehicles();
+    }
+
+    function applyVehicleToAllDates(vehicleId) {
+        if (!vehicleId) {
+            return;
+        }
+        vehicleTableBody.querySelectorAll('select[data-vehicle-date]').forEach((select) => {
+            select.value = vehicleId;
+            vehicleAssignments[select.dataset.vehicleDate] = vehicleId;
         });
+        applyVehicleToFields(vehicleId);
+        syncVehicleInputs();
+        updateNav();
     }
 
     function recurrenceFieldsValid() {
@@ -701,24 +859,6 @@
         fetchAvailableDates();
     });
 
-    [
-        'full_name',
-        'phone_local_number',
-        'email',
-        'car_brand',
-        'car_model',
-        'car_color',
-        'car_plate',
-        'parking_level',
-        'parking_number',
-        'notes',
-    ].forEach((name) => {
-        const field = form.querySelector(`[name="${name}"]`);
-        if (field) {
-            field.addEventListener('input', updateNav);
-        }
-    });
-
     function onRecurrenceChange() {
         updateRecurrenceUI();
         if (currentStep === 4) {
@@ -740,12 +880,21 @@
         endDateInput.addEventListener('change', onRecurrenceChange);
         endDateInput.addEventListener('input', onRecurrenceChange);
     }
+    let isSubmitting = false;
 
     form.addEventListener('submit', (event) => {
         if (!isStepValid(TOTAL_STEPS) || !recurrenceFieldsValid() || !selectedBuilding
             || !selectedService || !selectedDate || !selectedTime) {
             event.preventDefault();
+            return;
         }
+        if (isSubmitting) {
+            event.preventDefault();
+            return;
+        }
+        isSubmitting = true;
+        submitButton.disabled = true;
+        submitButton.textContent = 'Confirmando...';
     });
 
     // ----- Init -----
@@ -771,11 +920,19 @@
             selectedTime = timeInput.value.slice(0, 5);
             timeInput.value = selectedTime;
         }
+        if (vehicleAssignmentsInput && vehicleAssignmentsInput.value) {
+            try {
+                vehicleAssignments = JSON.parse(vehicleAssignmentsInput.value) || {};
+            } catch (error) {
+                vehicleAssignments = {};
+            }
+        }
     }
 
     restoreFromForm();
     renderBuildings();
     renderServices();
+    syncVehicleInputs();
 
     const startStep = Number(form.dataset.startStep || 1);
     showStep(

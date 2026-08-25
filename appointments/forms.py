@@ -1,17 +1,19 @@
+import json
+
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
 from accounts.country_codes import DEFAULT_COUNTRY_CODE
-from accounts.models import UserProfile
+from accounts.models import UserProfile, Vehicle
 from accounts.phone_fields import (
     clean_phone_local_number,
     phone_country_code_field,
     phone_local_number_field,
 )
 from accounts.phone_utils import combine_phone_number, split_phone_number
-from configuracion.availability import validate_appointment_slot
+from configuracion.availability import slot_interval_minutes, validate_appointment_slot
 from edificios.models import Building
 from membresia.services import find_membership_for_booking, remaining_washes
 from servicios.models import Service
@@ -34,7 +36,31 @@ VEHICLE_PROFILE_FIELDS = (
 )
 
 
+def _validate_time_interval(appointment_time):
+    interval = slot_interval_minutes()
+    seconds_since_midnight = (
+        appointment_time.hour * 3600
+        + appointment_time.minute * 60
+        + appointment_time.second
+    )
+    if (
+        appointment_time.microsecond
+        or seconds_since_midnight % (interval * 60)
+    ):
+        raise forms.ValidationError(
+            f'Selecciona un horario en intervalos de {interval} minutos.'
+        )
+    return appointment_time
+
+
 class AppointmentForm(forms.ModelForm):
+    vehicle = forms.ModelChoiceField(
+        label='Vehículo',
+        queryset=Vehicle.objects.none(),
+        required=False,
+        empty_label='Mantener vehículo actual',
+    )
+    vehicle_assignments = forms.CharField(required=False, widget=forms.HiddenInput())
     phone_country_code = phone_country_code_field()
     phone_local_number = phone_local_number_field()
     full_name = forms.CharField(
@@ -70,6 +96,15 @@ class AppointmentForm(forms.ModelForm):
         if buildings is None:
             buildings = Building.objects.none()
 
+        self.fields['time'].widget.attrs['step'] = str(slot_interval_minutes() * 60)
+        if user is not None and user.is_authenticated:
+            self.fields['vehicle'].queryset = user.vehicles.all()
+            if self.instance.pk and self.instance.car_plate:
+                vehicle = user.vehicles.filter(
+                    plate__iexact=self.instance.car_plate,
+                ).first()
+                if vehicle:
+                    self.initial.setdefault('vehicle', vehicle.pk)
         self.fields['building'].queryset = buildings
         self.fields['building'].empty_label = 'Selecciona un edificio'
         self.fields['service'].queryset = Service.objects.filter(is_active=True)
@@ -88,7 +123,7 @@ class AppointmentForm(forms.ModelForm):
             self.fields['last_name'].required = False
             self.fields['full_name'].required = True
             for field_name in VEHICLE_PROFILE_FIELDS:
-                self.fields[field_name].required = True
+                self.fields[field_name].required = False
             self.fields['email'].label = 'Email'
             self.fields['email'].widget.attrs['placeholder'] = 'juan@email.com'
             self.fields['car_brand'].widget.attrs['placeholder'] = 'Toyota'
@@ -105,11 +140,14 @@ class AppointmentForm(forms.ModelForm):
             self.fields.pop('full_name', None)
             # Keep vehicle fields off the staff edit booking UI so blank POST
             # values do not wipe appointment data.
-            if booking_ui:
+            if booking_ui and not self.allow_recurrence:
                 for field_name in (*VEHICLE_PROFILE_FIELDS, 'notes'):
                     self.fields.pop(field_name, None)
 
         if not self.allow_recurrence:
+            self.fields.pop('vehicle_assignments', None)
+            if not booking_ui:
+                self.fields.pop('vehicle', None)
             self.fields.pop('recurrence', None)
             self.fields.pop('end_date', None)
             self.fields.pop('create_available_only', None)
@@ -162,16 +200,131 @@ class AppointmentForm(forms.ModelForm):
         )
 
     def clean_time(self):
-        appointment_time = self.cleaned_data['time']
-        if (
-            appointment_time.minute not in (0, 30)
-            or appointment_time.second
-            or appointment_time.microsecond
-        ):
-            raise forms.ValidationError(
-                'Selecciona una hora exacta o media hora, por ejemplo 10:00 o 10:30.'
-            )
-        return appointment_time
+        return _validate_time_interval(self.cleaned_data['time'])
+
+    def _apply_vehicle_to_cleaned_data(self, vehicle):
+        self.cleaned_data['car_brand'] = vehicle.brand
+        self.cleaned_data['car_model'] = vehicle.model
+        self.cleaned_data['car_color'] = vehicle.color
+        self.cleaned_data['car_plate'] = vehicle.plate
+        self.cleaned_data['parking_level'] = vehicle.parking_level
+        self.cleaned_data['parking_number'] = vehicle.parking_number
+
+    def _vehicle_data(self, vehicle):
+        return {
+            'car_brand': vehicle.brand,
+            'car_model': vehicle.model,
+            'car_color': vehicle.color,
+            'car_plate': vehicle.plate,
+            'parking_level': vehicle.parking_level,
+            'parking_number': vehicle.parking_number,
+        }
+
+    def _clean_vehicle_assignments(self, occurrence_dates):
+        raw = self.cleaned_data.get('vehicle_assignments') or '{}'
+        try:
+            assignment_data = json.loads(raw)
+        except json.JSONDecodeError:
+            self.add_error('vehicle_assignments', 'La selección de vehículos no es válida.')
+            return {}
+
+        if not isinstance(assignment_data, dict):
+            self.add_error('vehicle_assignments', 'La selección de vehículos no es válida.')
+            return {}
+
+        vehicles_by_id = {
+            str(vehicle.pk): vehicle
+            for vehicle in self.fields['vehicle'].queryset
+        }
+        vehicle_by_date = {}
+        for occurrence in occurrence_dates:
+            vehicle_id = str(assignment_data.get(occurrence.isoformat()) or '').strip()
+            if not vehicle_id:
+                vehicle_by_date[occurrence] = None
+                continue
+            vehicle = vehicles_by_id.get(vehicle_id)
+            if vehicle is None:
+                self.add_error('vehicle_assignments', 'Selecciona un vehículo válido.')
+                continue
+            vehicle_by_date[occurrence] = vehicle
+        return vehicle_by_date
+
+    def _validate_vehicle_details(self):
+        labels = {
+            'car_brand': 'Indica la marca del auto.',
+            'car_model': 'Indica el modelo del auto.',
+            'car_color': 'Indica el color del auto.',
+            'car_plate': 'Indica la placa del auto.',
+            'parking_level': 'Indica el sótano o nivel de parqueo.',
+            'parking_number': 'Indica el número de parqueo.',
+        }
+        for field_name, message in labels.items():
+            if not (self.cleaned_data.get(field_name) or '').strip():
+                self.add_error(field_name, message)
+
+    def _save_vehicle_from_cleaned_data(self, user):
+        if not user or not user.is_authenticated:
+            return None
+
+        selected_vehicle = self.cleaned_data.get('vehicle')
+        if selected_vehicle:
+            return selected_vehicle
+
+        plate = (self.cleaned_data.get('car_plate') or '').strip()
+        if not plate:
+            return None
+
+        existing = Vehicle.objects.filter(user=user, plate__iexact=plate).first()
+        data = {
+            'brand': self.cleaned_data.get('car_brand', ''),
+            'model': self.cleaned_data.get('car_model', ''),
+            'color': self.cleaned_data.get('car_color', ''),
+            'plate': plate,
+            'parking_level': self.cleaned_data.get('parking_level', ''),
+            'parking_number': self.cleaned_data.get('parking_number', ''),
+        }
+        if existing:
+            for field_name, value in data.items():
+                setattr(existing, field_name, value)
+            existing.save(update_fields=[*data.keys(), 'updated_at'])
+            return existing
+
+        data['is_default'] = not Vehicle.objects.filter(user=user).exists()
+        return Vehicle.objects.create(user=user, **data)
+
+    def _duplicate_active_appointment_exists(
+        self,
+        building,
+        service,
+        appointment_date,
+        appointment_time,
+        car_plate=None,
+    ):
+        user = self.booking_user
+        if not user or not user.is_authenticated:
+            return False
+
+        car_plate = (
+            car_plate
+            or self.cleaned_data.get('car_plate')
+            or self.instance.car_plate
+            or ''
+        ).strip()
+        if not car_plate:
+            return False
+
+        duplicates = Appointment.objects.filter(
+            user=user,
+            building=building,
+            service=service,
+            date=appointment_date,
+            time=appointment_time,
+            car_plate__iexact=car_plate,
+            status=AppointmentStatus.ACTIVE,
+        )
+        if self.instance.pk:
+            duplicates = duplicates.exclude(pk=self.instance.pk)
+        return duplicates.exists()
 
     def clean(self):
         cleaned_data = super().clean()
@@ -224,6 +377,23 @@ class AppointmentForm(forms.ModelForm):
                 occurrence_dates = [appointment_date]
 
         cleaned_data['recurrence_dates'] = [d for d in occurrence_dates if d]
+        if self.booking_ui and self.allow_recurrence:
+            vehicle_by_date = self._clean_vehicle_assignments(
+                cleaned_data['recurrence_dates']
+            )
+            cleaned_data['vehicle_by_date'] = vehicle_by_date
+            assigned_vehicles = [vehicle for vehicle in vehicle_by_date.values() if vehicle]
+            vehicle = cleaned_data.get('vehicle') or (
+                assigned_vehicles[0] if assigned_vehicles else None
+            )
+            has_vehicle_for_every_date = (
+                bool(vehicle_by_date)
+                and all(vehicle_by_date.get(day) for day in cleaned_data['recurrence_dates'])
+            )
+            if vehicle:
+                self._apply_vehicle_to_cleaned_data(vehicle)
+            if not has_vehicle_for_every_date and not vehicle:
+                self._validate_vehicle_details()
         create_available_only = bool(cleaned_data.get('create_available_only'))
 
         if building and appointment_time and cleaned_data['recurrence_dates']:
@@ -235,8 +405,22 @@ class AppointmentForm(forms.ModelForm):
                     building,
                     occurrence,
                     appointment_time,
+                    service=service,
                     exclude_appointment_id=exclude_id,
                 )
+                occurrence_vehicle = (cleaned_data.get('vehicle_by_date') or {}).get(occurrence)
+                occurrence_plate = occurrence_vehicle.plate if occurrence_vehicle else None
+                if not error and self._duplicate_active_appointment_exists(
+                    building,
+                    service,
+                    occurrence,
+                    appointment_time,
+                    car_plate=occurrence_plate,
+                ):
+                    error = (
+                        'Ya tienes una cita activa para este vehículo en ese '
+                        'edificio, fecha y hora.'
+                    )
                 if error:
                     unavailable.append(
                         {
@@ -321,6 +505,7 @@ class AppointmentForm(forms.ModelForm):
         user.save(update_fields=['first_name', 'last_name', 'email'])
 
         profile, _created = UserProfile.objects.get_or_create(user=user)
+        self._save_vehicle_from_cleaned_data(user)
         profile.phone_country_code = self.cleaned_data['phone_country_code']
         profile.phone_number = self.cleaned_data['phone_local_number']
         for field_name in VEHICLE_PROFILE_FIELDS:
@@ -339,6 +524,10 @@ class AppointmentForm(forms.ModelForm):
             appointment,
             self.cleaned_data.get('membership_subscription'),
         )
+        selected_vehicle = self.cleaned_data.get('vehicle')
+        if selected_vehicle:
+            for field_name, value in self._vehicle_data(selected_vehicle).items():
+                setattr(appointment, field_name, value)
         if commit:
             appointment.save()
         return appointment
@@ -359,6 +548,21 @@ class AppointmentForm(forms.ModelForm):
                 subscription = None
                 if user and user.is_authenticated:
                     subscription = find_membership_for_booking(user, service)
+                occurrence_vehicle = (
+                    self.cleaned_data.get('vehicle_by_date') or {}
+                ).get(occurrence)
+                vehicle_data = (
+                    self._vehicle_data(occurrence_vehicle)
+                    if occurrence_vehicle
+                    else {
+                        'car_brand': self.cleaned_data.get('car_brand', ''),
+                        'car_model': self.cleaned_data.get('car_model', ''),
+                        'car_color': self.cleaned_data.get('car_color', ''),
+                        'car_plate': self.cleaned_data.get('car_plate', ''),
+                        'parking_level': self.cleaned_data.get('parking_level', ''),
+                        'parking_number': self.cleaned_data.get('parking_number', ''),
+                    }
+                )
 
                 appointment = Appointment(
                     user=user,
@@ -368,12 +572,12 @@ class AppointmentForm(forms.ModelForm):
                     last_name=self.cleaned_data['last_name'],
                     phone_number=phone_number,
                     email=self.cleaned_data['email'],
-                    car_brand=self.cleaned_data.get('car_brand', ''),
-                    car_model=self.cleaned_data.get('car_model', ''),
-                    car_color=self.cleaned_data.get('car_color', ''),
-                    car_plate=self.cleaned_data.get('car_plate', ''),
-                    parking_level=self.cleaned_data.get('parking_level', ''),
-                    parking_number=self.cleaned_data.get('parking_number', ''),
+                    car_brand=vehicle_data['car_brand'],
+                    car_model=vehicle_data['car_model'],
+                    car_color=vehicle_data['car_color'],
+                    car_plate=vehicle_data['car_plate'],
+                    parking_level=vehicle_data['parking_level'],
+                    parking_number=vehicle_data['parking_number'],
                     notes=self.cleaned_data.get('notes', ''),
                     date=occurrence,
                     time=self.cleaned_data['time'],
@@ -553,21 +757,13 @@ class AppointmentPaymentForm(forms.ModelForm):
 class AppointmentRescheduleForm(forms.ModelForm):
     def __init__(self, *args, booking_ui=False, **kwargs):
         super().__init__(*args, **kwargs)
+        self.fields['time'].widget.attrs['step'] = str(slot_interval_minutes() * 60)
         if booking_ui:
             self.fields['date'].widget = forms.HiddenInput()
             self.fields['time'].widget = forms.HiddenInput()
 
     def clean_time(self):
-        appointment_time = self.cleaned_data['time']
-        if (
-            appointment_time.minute not in (0, 30)
-            or appointment_time.second
-            or appointment_time.microsecond
-        ):
-            raise forms.ValidationError(
-                'Selecciona una hora exacta o media hora, por ejemplo 10:00 o 10:30.'
-            )
-        return appointment_time
+        return _validate_time_interval(self.cleaned_data['time'])
 
     def clean(self):
         cleaned_data = super().clean()
@@ -579,6 +775,7 @@ class AppointmentRescheduleForm(forms.ModelForm):
                 self.instance.building,
                 appointment_date,
                 appointment_time,
+                service=self.instance.service,
                 exclude_appointment_id=self.instance.pk,
             )
             if error:

@@ -79,6 +79,41 @@
     </dl>
 </section>
 
+<section class="card">
+    <div class="card-header">
+        <p class="eyebrow">Vehículos</p>
+        <a class="button button-secondary" href="{% url 'account_profile_edit' %}">Agregar o editar</a>
+    </div>
+    {% if vehicles %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Vehículo</th>
+                        <th>Placa</th>
+                        <th>Parqueo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vehicle in vehicles %}
+                        <tr>
+                            <td>
+                                {{ vehicle.brand }} {{ vehicle.model }}
+                                {% if vehicle.color %} · {{ vehicle.color }}{% endif %}
+                                {% if vehicle.is_default %}<span class="status-pill">Predeterminado</span>{% endif %}
+                            </td>
+                            <td>{{ vehicle.plate }}</td>
+                            <td>{{ vehicle.parking_level }} · {{ vehicle.parking_number }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p>Sin vehículos guardados. Se guardará uno cuando edites tu perfil o agendes una cita.</p>
+    {% endif %}
+</section>
+
 <section class="stat-grid account-stats">
     <article class="stat-card">
         <span>Citas activas</span>

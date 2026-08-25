@@ -3,6 +3,7 @@ from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
 
 from .country_codes import DEFAULT_COUNTRY_CODE
+from .models import Vehicle
 from .phone_fields import (
     clean_phone_local_number,
     phone_country_code_field,
@@ -106,6 +107,31 @@ class ProfileEditForm(forms.Form):
                 'parking_number',
             ]
         )
+
+        plate = self.cleaned_data['car_plate'].strip()
+        if plate:
+            existing = Vehicle.objects.filter(user=user, plate__iexact=plate).first()
+            data = {
+                'brand': self.cleaned_data['car_brand'],
+                'model': self.cleaned_data['car_model'],
+                'color': self.cleaned_data['car_color'],
+                'plate': plate,
+                'parking_level': self.cleaned_data['parking_level'],
+                'parking_number': self.cleaned_data['parking_number'],
+            }
+            if existing:
+                Vehicle.objects.filter(user=user).exclude(pk=existing.pk).update(is_default=False)
+                for field_name, value in data.items():
+                    setattr(existing, field_name, value)
+                existing.is_default = True
+                existing.save(update_fields=[*data.keys(), 'is_default', 'updated_at'])
+            else:
+                Vehicle.objects.filter(user=user).update(is_default=False)
+                Vehicle.objects.create(
+                    user=user,
+                    is_default=True,
+                    **data,
+                )
 
 class UserForm(forms.ModelForm):
     class Meta:

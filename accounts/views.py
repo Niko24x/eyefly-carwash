@@ -42,6 +42,7 @@ def account_profile(request):
         'accounts/account_profile.html',
         {
             'profile': profile,
+            'vehicles': request.user.vehicles.all(),
             'active_appointments': active_appointments,
             'total_appointments': total_appointments,
         },

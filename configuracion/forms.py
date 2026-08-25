@@ -9,10 +9,15 @@ from .models import BuildingSchedule, Holiday, SystemSettings
 class SystemSettingsForm(forms.ModelForm):
     class Meta:
         model = SystemSettings
-        fields = ['max_concurrent_appointments', 'max_advance_booking_days']
+        fields = [
+            'max_concurrent_appointments',
+            'max_advance_booking_days',
+            'slot_interval_minutes',
+        ]
         labels = {
             'max_concurrent_appointments': 'Citas simultáneas máximas',
             'max_advance_booking_days': 'Anticipación máxima (días)',
+            'slot_interval_minutes': 'Intervalo de horarios',
         }
         help_texts = {
             'max_concurrent_appointments': (
@@ -20,6 +25,9 @@ class SystemSettingsForm(forms.ModelForm):
             ),
             'max_advance_booking_days': (
                 'Número máximo de días hacia adelante permitidos para agendar una cita.'
+            ),
+            'slot_interval_minutes': (
+                'Controla cada cuántos minutos se muestran horarios al agendar.'
             ),
         }
 

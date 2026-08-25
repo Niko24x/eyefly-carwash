@@ -113,6 +113,15 @@
                                 <span class="field-error">{{ form.email.errors|join:', ' }}</span>
                             {% endif %}
                         </p>
+                        {% if form.vehicle %}
+                            <p>
+                                <label for="{{ form.vehicle.id_for_label }}">{{ form.vehicle.label }}</label>
+                                {{ form.vehicle }}
+                                {% if form.vehicle.errors %}
+                                    <span class="field-error">{{ form.vehicle.errors|join:', ' }}</span>
+                                {% endif %}
+                            </p>
+                        {% endif %}
                     </div>
                 {% endif %}
 

@@ -489,7 +489,9 @@ class AppointmentRecurrenceViewTests(TestCase):
         self.assertContains(response, 'name="end_date"')
         self.assertContains(response, 'Datos de tu vehículo')
         self.assertContains(response, 'name="car_brand"')
-        self.assertContains(response, 'Información de parqueo')
+        self.assertContains(response, 'Elige un vehículo de tu cuenta')
+        self.assertNotContains(response, 'Información de parqueo')
+        self.assertNotContains(response, 'Nombre completo')
 
     def test_create_view_weekly_series(self):
         self.client.login(username='cliente', password='password123')

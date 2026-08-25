@@ -11,6 +11,7 @@ class SystemSettingsFormTests(TestCase):
             data={
                 'max_concurrent_appointments': 3,
                 'max_advance_booking_days': 30,
+                'slot_interval_minutes': 30,
             }
         )
 
@@ -21,6 +22,7 @@ class SystemSettingsFormTests(TestCase):
             data={
                 'max_concurrent_appointments': -1,
                 'max_advance_booking_days': 30,
+                'slot_interval_minutes': 30,
             }
         )
 
@@ -33,6 +35,19 @@ class SystemSettingsFormTests(TestCase):
         self.assertFalse(form.is_valid())
         self.assertIn('max_concurrent_appointments', form.errors)
         self.assertIn('max_advance_booking_days', form.errors)
+        self.assertIn('slot_interval_minutes', form.errors)
+
+    def test_rejects_unsupported_slot_interval(self):
+        form = SystemSettingsForm(
+            data={
+                'max_concurrent_appointments': 3,
+                'max_advance_booking_days': 30,
+                'slot_interval_minutes': 20,
+            }
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('slot_interval_minutes', form.errors)
 
 
 class HolidayFormTests(TestCase):

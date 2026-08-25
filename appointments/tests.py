@@ -1,3 +1,4 @@
+import json
 from datetime import date, datetime, time, timedelta
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
@@ -7,6 +8,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from accounts.models import Vehicle
 from configuracion.models import BuildingSchedule, Holiday, SystemSettings
 from edificios.models import Building
 from servicios.models import Service
@@ -66,8 +68,12 @@ class AppointmentFormTests(TestCase):
             name='Lavado completo',
             description='Lavado exterior e interior.',
         )
+        self.long_service = Service.objects.create(
+            name='Lavado premium',
+            duration_minutes=90,
+        )
 
-    def _form_data(self, appointment_time, appointment_date=None):
+    def _form_data(self, appointment_time, appointment_date=None, service=None):
         if appointment_date is None:
             appointment_date = timezone.localdate() + timedelta(days=1)
         if not isinstance(appointment_date, str):
@@ -75,7 +81,7 @@ class AppointmentFormTests(TestCase):
 
         return {
             'building': self.building.id,
-            'service': self.service.id,
+            'service': (service or self.service).id,
             'first_name': 'Ana',
             'last_name': 'Lopez',
             'phone_country_code': '502',
@@ -100,6 +106,41 @@ class AppointmentFormTests(TestCase):
         )
 
         self.assertTrue(form.is_valid())
+
+    def test_accepts_quarter_hour_when_interval_is_fifteen_minutes(self):
+        SystemSettings.objects.update_or_create(
+            pk=1,
+            defaults={
+                'max_concurrent_appointments': 1,
+                'max_advance_booking_days': 30,
+                'slot_interval_minutes': 15,
+            },
+        )
+
+        form = AppointmentForm(
+            data=self._form_data('10:15'),
+            buildings=Building.objects.filter(id=self.building.id),
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_rejects_half_hour_when_interval_is_hourly(self):
+        SystemSettings.objects.update_or_create(
+            pk=1,
+            defaults={
+                'max_concurrent_appointments': 1,
+                'max_advance_booking_days': 30,
+                'slot_interval_minutes': 60,
+            },
+        )
+
+        form = AppointmentForm(
+            data=self._form_data('10:30'),
+            buildings=Building.objects.filter(id=self.building.id),
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('intervalos de 60 minutos', str(form.errors))
 
     def test_rejects_random_minutes(self):
         form = AppointmentForm(
@@ -199,6 +240,186 @@ class AppointmentFormTests(TestCase):
             )
             self.assertFalse(form.is_valid())
             self.assertIn('ya pasaron', str(form.errors))
+
+    def test_rejects_overlap_with_existing_long_service(self):
+        target_date = timezone.localdate() + timedelta(days=1)
+        Appointment.objects.create(
+            user=self.user,
+            building=self.building,
+            service=self.long_service,
+            first_name='Ana',
+            last_name='Lopez',
+            phone_number='50255512345',
+            email='ana@example.com',
+            date=target_date,
+            time=time(9, 0),
+        )
+
+        form = AppointmentForm(
+            data=self._form_data('09:30', target_date),
+            buildings=Building.objects.filter(id=self.building.id),
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('espacios disponibles', str(form.errors))
+
+    def test_rejects_duplicate_active_booking_for_same_vehicle(self):
+        self.building.autos_por_turno = 2
+        self.building.save(update_fields=['autos_por_turno'])
+        target_date = timezone.localdate() + timedelta(days=1)
+        Appointment.objects.create(
+            user=self.user,
+            building=self.building,
+            service=self.service,
+            first_name='Ana',
+            last_name='Lopez',
+            phone_number='50255512345',
+            email='ana@example.com',
+            car_plate='ABC-123',
+            date=target_date,
+            time=time(11, 0),
+        )
+
+        form = AppointmentForm(
+            data={
+                **self._form_data('11:00', target_date),
+                'car_plate': 'ABC-123',
+            },
+            buildings=Building.objects.filter(id=self.building.id),
+            user=self.user,
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('Ya tienes una cita activa', str(form.errors))
+
+    def test_allows_same_slot_for_different_vehicle_when_capacity_allows(self):
+        self.building.autos_por_turno = 2
+        self.building.save(update_fields=['autos_por_turno'])
+        target_date = timezone.localdate() + timedelta(days=1)
+        Appointment.objects.create(
+            user=self.user,
+            building=self.building,
+            service=self.service,
+            first_name='Ana',
+            last_name='Lopez',
+            phone_number='50255512345',
+            email='ana@example.com',
+            car_plate='ABC-123',
+            date=target_date,
+            time=time(11, 0),
+        )
+
+        form = AppointmentForm(
+            data={
+                **self._form_data('11:00', target_date),
+                'car_plate': 'XYZ-987',
+            },
+            buildings=Building.objects.filter(id=self.building.id),
+            user=self.user,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_wizard_uses_selected_saved_vehicle(self):
+        vehicle = Vehicle.objects.create(
+            user=self.user,
+            brand='Mazda',
+            model='CX-5',
+            color='Rojo',
+            plate='MZD-123',
+            parking_level='S2',
+            parking_number='44',
+        )
+
+        form = AppointmentForm(
+            data={
+                **self._form_data('12:00'),
+                'full_name': 'Ana Lopez',
+                'vehicle': vehicle.id,
+                'recurrence': 'unica',
+            },
+            buildings=Building.objects.filter(id=self.building.id),
+            user=self.user,
+            booking_ui=True,
+            allow_recurrence=True,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        created = form.save_series(self.user)[0]
+        self.assertEqual(created.car_brand, 'Mazda')
+        self.assertEqual(created.car_plate, 'MZD-123')
+        self.assertEqual(created.parking_number, '44')
+
+    def test_wizard_saves_new_vehicle_details(self):
+        form = AppointmentForm(
+            data={
+                **self._form_data('12:00'),
+                'full_name': 'Ana Lopez',
+                'car_brand': 'Toyota',
+                'car_model': 'Yaris',
+                'car_color': 'Azul',
+                'car_plate': 'TYT-456',
+                'parking_level': 'S1',
+                'parking_number': '12',
+                'recurrence': 'unica',
+            },
+            buildings=Building.objects.filter(id=self.building.id),
+            user=self.user,
+            booking_ui=True,
+            allow_recurrence=True,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        form.save_series(self.user)
+
+        vehicle = Vehicle.objects.get(user=self.user, plate='TYT-456')
+        self.assertEqual(vehicle.brand, 'Toyota')
+        self.assertTrue(vehicle.is_default)
+
+    def test_wizard_assigns_vehicle_per_recurring_appointment(self):
+        first_vehicle = Vehicle.objects.create(
+            user=self.user,
+            brand='Mazda',
+            model='CX-5',
+            color='Rojo',
+            plate='MZD-123',
+            parking_level='S2',
+            parking_number='44',
+        )
+        second_vehicle = Vehicle.objects.create(
+            user=self.user,
+            brand='Toyota',
+            model='Yaris',
+            color='Azul',
+            plate='TYT-456',
+            parking_level='S1',
+            parking_number='12',
+        )
+        start = timezone.localdate() + timedelta(days=1)
+        end = start + timedelta(days=7)
+
+        form = AppointmentForm(
+            data={
+                **self._form_data('12:00', start),
+                'full_name': 'Ana Lopez',
+                'recurrence': 'semanal',
+                'end_date': end.isoformat(),
+                'vehicle_assignments': json.dumps(
+                    {
+                        start.isoformat(): first_vehicle.id,
+                        end.isoformat(): second_vehicle.id,
+                    }
+                ),
+            },
+            buildings=Building.objects.filter(id=self.building.id),
+            user=self.user,
+            booking_ui=True,
+            allow_recurrence=True,
+        )
+
+        self.assertTrue(form.is_valid(), form.errors)
+        created = form.save_series(self.user)
+        self.assertEqual([appointment.car_plate for appointment in created], ['MZD-123', 'TYT-456'])
 
 
 class AppointmentPageTests(TestCase):
@@ -366,7 +587,7 @@ class AppointmentPageTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Selecciona una hora exacta o media hora')
+        self.assertContains(response, 'Selecciona un horario en intervalos de 30 minutos')
         self.assertFalse(Appointment.objects.filter(first_name='Maria').exists())
 
     def test_appointment_update_page_requires_login(self):
@@ -399,6 +620,41 @@ class AppointmentPageTests(TestCase):
         self.assertRedirects(response, reverse('appointment_list'))
         self.appointment.refresh_from_db()
         self.assertEqual(self.appointment.last_name, 'Martinez')
+
+    def test_appointment_update_can_change_vehicle(self):
+        vehicle = Vehicle.objects.create(
+            user=self.user,
+            brand='Mazda',
+            model='CX-5',
+            color='Rojo',
+            plate='MZD-123',
+            parking_level='S2',
+            parking_number='44',
+        )
+        self.client.login(username='cliente', password='password123')
+
+        future_date = (timezone.localdate() + timedelta(days=1)).isoformat()
+        response = self.client.post(
+            reverse('appointment_update', args=[self.appointment.id]),
+            {
+                'first_name': 'Ana',
+                'building': self.building.id,
+                'service': self.service.id,
+                'last_name': 'Lopez',
+                'phone_country_code': '502',
+                'phone_local_number': '55512345',
+                'email': 'ana@example.com',
+                'vehicle': vehicle.id,
+                'date': future_date,
+                'time': '10:30',
+            },
+        )
+
+        self.assertRedirects(response, reverse('appointment_list'))
+        self.appointment.refresh_from_db()
+        self.assertEqual(self.appointment.car_brand, 'Mazda')
+        self.assertEqual(self.appointment.car_plate, 'MZD-123')
+        self.assertEqual(self.appointment.parking_number, '44')
 
     def test_building_admin_cannot_reschedule_other_users_appointment(self):
         self.building.admins.add(self.other_user)

@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
+from .models import Vehicle
+
 
 User = get_user_model()
 
@@ -100,6 +102,12 @@ class AccountPageTests(TestCase):
                 'email': 'nuevo@example.com',
                 'phone_country_code': '502',
                 'phone_local_number': '55512345',
+                'car_brand': 'Toyota',
+                'car_model': 'Yaris',
+                'car_color': 'Azul',
+                'car_plate': 'TYT-456',
+                'parking_level': 'S1',
+                'parking_number': '12',
             },
         )
 
@@ -109,6 +117,9 @@ class AccountPageTests(TestCase):
         self.assertEqual(self.user.email, 'nuevo@example.com')
         self.assertEqual(self.user.profile.phone_country_code, '502')
         self.assertEqual(self.user.profile.phone_number, '55512345')
+        vehicle = Vehicle.objects.get(user=self.user, plate='TYT-456')
+        self.assertEqual(vehicle.brand, 'Toyota')
+        self.assertTrue(vehicle.is_default)
 
     def test_account_profile_edit_requires_login(self):
         response = self.client.get(reverse('account_profile_edit'))

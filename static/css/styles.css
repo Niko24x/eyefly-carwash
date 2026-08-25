@@ -3960,6 +3960,106 @@ a {
     text-transform: capitalize;
 }
 
+.wizard-vehicle-table-wrap {
+    background: #fff;
+    border: 2px solid rgba(46, 76, 140, 0.12);
+    border-radius: 16px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.wizard-vehicle-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.wizard-vehicle-table th,
+.wizard-vehicle-table td {
+    border-bottom: 1px solid rgba(46, 76, 140, 0.1);
+    padding: 0.9rem 1rem;
+    text-align: left;
+    vertical-align: top;
+}
+
+.wizard-vehicle-table th {
+    background: rgba(46, 76, 140, 0.06);
+    color: rgba(30, 51, 102, 0.7);
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.wizard-vehicle-table td {
+    color: var(--color-blue-dark);
+    font-weight: 800;
+}
+
+.wizard-vehicle-table select {
+    background: #fff;
+    border: 2px solid rgba(46, 76, 140, 0.18);
+    border-radius: 12px;
+    color: var(--color-blue-dark);
+    font: inherit;
+    padding: 0.75rem 0.85rem;
+    width: 100%;
+}
+
+.wizard-vehicle-service {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.wizard-vehicle-service .wizard-field-hint {
+    display: block;
+    font-weight: 500;
+}
+
+.wizard-vehicle-row--primary td {
+    vertical-align: middle;
+}
+
+.wizard-vehicle-row--primary .wizard-vehicle-service {
+    align-items: center;
+    text-align: center;
+}
+
+.wizard-apply-vehicle {
+    background: rgba(46, 76, 140, 0.06);
+    border: 2px solid rgba(46, 76, 140, 0.18);
+    border-radius: 12px;
+    color: var(--color-yinmn-blue);
+    cursor: pointer;
+    display: block;
+    font: inherit;
+    font-size: 0.82rem;
+    font-weight: 800;
+    margin-top: 0.45rem;
+    padding: 0.55rem 0.75rem;
+    text-align: center;
+    width: 100%;
+}
+
+.wizard-apply-vehicle:hover:not(:disabled) {
+    background: rgba(46, 76, 140, 0.12);
+    border-color: var(--color-yinmn-blue);
+}
+
+.wizard-apply-vehicle:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.wizard-vehicle-table-wrap > .wizard-field-hint {
+    display: block;
+    padding: 0.75rem 1rem 1rem;
+}
+
+.wizard-vehicle-table-wrap > .wizard-field-hint a {
+    color: var(--color-yinmn-blue);
+    font-weight: 700;
+}
+
 .wizard-fields {
     display: flex;
     flex-direction: column;
