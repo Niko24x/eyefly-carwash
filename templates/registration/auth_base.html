@@ -5,6 +5,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Mi Cuenta | Lavado de Autos{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{% static 'images/brand/favicon.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'images/brand/favicon.png' %}">
     <link rel="stylesheet" href="{% static 'vendor/font-awesome/css/all.min.css' %}">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
@@ -15,7 +17,7 @@
                 <span class="auth-logo-frame auth-logo-frame-sm">
                     <img
                         class="auth-logo-image"
-                        src="https://slick-car-cleaning-b-hi2a.bolt.host/images/brand/WhatsApp_Image_2026-06-03_at_15.49.50_(1).jpeg"
+                        src="{% static 'images/brand/logo.png' %}"
                         alt="Slick Logo"
                     >
                 </span>
@@ -42,7 +44,7 @@
                 <span class="auth-logo-frame auth-logo-frame-lg">
                     <img
                         class="auth-logo-image"
-                        src="https://slick-car-cleaning-b-hi2a.bolt.host/images/brand/WhatsApp_Image_2026-06-03_at_15.49.50_(1).jpeg"
+                        src="{% static 'images/brand/logo.png' %}"
                         alt="Slick"
                     >
                 </span>
