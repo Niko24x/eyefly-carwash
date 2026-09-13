@@ -7,8 +7,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from appointments.models import Appointment, AppointmentStatus
 
-from .forms import ProfileEditForm, RegisterForm, StaffUserCreationForm, UserForm
-from .models import UserProfile
+from .forms import ProfileEditForm, RegisterForm, StaffUserCreationForm, UserForm, VehicleForm
+from .models import UserProfile, Vehicle
 
 
 User = get_user_model()
@@ -67,6 +67,54 @@ def account_profile_edit(request):
         'accounts/account_profile_edit.html',
         {
             'form': form,
+        },
+    )
+
+
+@login_required
+def account_vehicle_create(request):
+    if request.method == 'POST':
+        form = VehicleForm(request.POST, user=request.user)
+        if form.is_valid():
+            form.save(request.user)
+            messages.success(request, 'El vehículo fue agregado correctamente.')
+            return redirect('account_profile')
+    else:
+        form = VehicleForm(user=request.user)
+
+    return render(
+        request,
+        'accounts/account_vehicle_form.html',
+        {
+            'form': form,
+            'page_title': 'Agregar vehículo',
+            'page_description': 'Registra otro auto para usarlo en tus citas.',
+            'submit_label': 'Agregar vehículo',
+        },
+    )
+
+
+@login_required
+def account_vehicle_update(request, pk):
+    vehicle = get_object_or_404(Vehicle, pk=pk, user=request.user)
+    if request.method == 'POST':
+        form = VehicleForm(request.POST, instance=vehicle, user=request.user)
+        if form.is_valid():
+            form.save(request.user)
+            messages.success(request, 'El vehículo fue actualizado correctamente.')
+            return redirect('account_profile')
+    else:
+        form = VehicleForm(instance=vehicle, user=request.user)
+
+    return render(
+        request,
+        'accounts/account_vehicle_form.html',
+        {
+            'form': form,
+            'vehicle': vehicle,
+            'page_title': 'Editar vehículo',
+            'page_description': 'Actualiza los datos de este auto.',
+            'submit_label': 'Guardar cambios',
         },
     )
 

@@ -102,12 +102,6 @@ class AccountPageTests(TestCase):
                 'email': 'nuevo@example.com',
                 'phone_country_code': '502',
                 'phone_local_number': '55512345',
-                'car_brand': 'Toyota',
-                'car_model': 'Yaris',
-                'car_color': 'Azul',
-                'car_plate': 'TYT-456',
-                'parking_level': 'S1',
-                'parking_number': '12',
             },
         )
 
@@ -117,9 +111,61 @@ class AccountPageTests(TestCase):
         self.assertEqual(self.user.email, 'nuevo@example.com')
         self.assertEqual(self.user.profile.phone_country_code, '502')
         self.assertEqual(self.user.profile.phone_number, '55512345')
-        vehicle = Vehicle.objects.get(user=self.user, plate='TYT-456')
-        self.assertEqual(vehicle.brand, 'Toyota')
-        self.assertTrue(vehicle.is_default)
+
+    def test_account_profile_can_add_another_vehicle(self):
+        Vehicle.objects.create(
+            user=self.user,
+            brand='Toyota',
+            model='Raize',
+            color='Rojo',
+            plate='753KIJ',
+            parking_level='1',
+            parking_number='12',
+            is_default=True,
+        )
+        self.client.login(username='cliente', password='password123')
+
+        response = self.client.post(
+            reverse('account_vehicle_create'),
+            {
+                'brand': 'Honda',
+                'model': 'Civic',
+                'color': 'Negro',
+                'plate': 'HND-999',
+                'parking_level': 'S2',
+                'parking_number': '44',
+            },
+        )
+
+        self.assertRedirects(response, reverse('account_profile'))
+        self.assertEqual(self.user.vehicles.count(), 2)
+        first = self.user.vehicles.get(plate='753KIJ')
+        second = self.user.vehicles.get(plate='HND-999')
+        self.assertTrue(first.is_default)
+        self.assertFalse(second.is_default)
+        self.assertEqual(second.brand, 'Honda')
+
+    def test_account_profile_vehicle_table_lists_columns(self):
+        Vehicle.objects.create(
+            user=self.user,
+            brand='Toyota',
+            model='Raize',
+            color='Rojo',
+            plate='753KIJ',
+            parking_level='1',
+            parking_number='12',
+            is_default=True,
+        )
+        self.client.login(username='cliente', password='password123')
+
+        response = self.client.get(reverse('account_profile'))
+
+        self.assertContains(response, 'Vehículo')
+        self.assertContains(response, 'Placa')
+        self.assertContains(response, 'Parqueo')
+        self.assertContains(response, '753KIJ')
+        self.assertContains(response, 'Agregar')
+        self.assertContains(response, reverse('account_vehicle_create'))
 
     def test_account_profile_edit_requires_login(self):
         response = self.client.get(reverse('account_profile_edit'))

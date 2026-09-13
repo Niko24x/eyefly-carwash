@@ -210,7 +210,7 @@
                 </table>
                 <span class="wizard-field-hint">
                     Elige un vehículo de tu cuenta para cada cita.
-                    <a href="{% url 'account_profile_edit' %}">Agrégalo o edítalo en tu cuenta.</a>
+                    <a href="{% url 'account_vehicle_create' %}">Agrégalo o edítalo en tu cuenta.</a>
                 </span>
                 {% if form.vehicle.errors %}<span class="wizard-field-error">{{ form.vehicle.errors|join:', ' }}</span>{% endif %}
                 {% if form.vehicle_assignments.errors %}<span class="wizard-field-error">{{ form.vehicle_assignments.errors|join:', ' }}</span>{% endif %}

@@ -51,12 +51,6 @@ class ProfileEditForm(forms.Form):
     email = forms.EmailField(label='Correo electrónico')
     phone_country_code = phone_country_code_field(required=True)
     phone_local_number = phone_local_number_field(required=False)
-    car_brand = forms.CharField(label='Marca del auto', max_length=80, required=False)
-    car_model = forms.CharField(label='Modelo', max_length=80, required=False)
-    car_color = forms.CharField(label='Color', max_length=40, required=False)
-    car_plate = forms.CharField(label='Placa', max_length=20, required=False)
-    parking_level = forms.CharField(label='Sótano', max_length=40, required=False)
-    parking_number = forms.CharField(label='Número de parqueo', max_length=40, required=False)
 
     def __init__(self, *args, user=None, profile=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -67,12 +61,6 @@ class ProfileEditForm(forms.Form):
         if profile is not None:
             self.fields['phone_country_code'].initial = profile.phone_country_code
             self.fields['phone_local_number'].initial = profile.phone_number
-            self.fields['car_brand'].initial = profile.car_brand
-            self.fields['car_model'].initial = profile.car_model
-            self.fields['car_color'].initial = profile.car_color
-            self.fields['car_plate'].initial = profile.car_plate
-            self.fields['parking_level'].initial = profile.parking_level
-            self.fields['parking_number'].initial = profile.parking_number
 
     def clean_phone_local_number(self):
         country_code = self.cleaned_data.get('phone_country_code', DEFAULT_COUNTRY_CODE)
@@ -89,49 +77,97 @@ class ProfileEditForm(forms.Form):
 
         profile.phone_country_code = self.cleaned_data['phone_country_code']
         profile.phone_number = self.cleaned_data['phone_local_number']
-        profile.car_brand = self.cleaned_data['car_brand']
-        profile.car_model = self.cleaned_data['car_model']
-        profile.car_color = self.cleaned_data['car_color']
-        profile.car_plate = self.cleaned_data['car_plate']
-        profile.parking_level = self.cleaned_data['parking_level']
-        profile.parking_number = self.cleaned_data['parking_number']
-        profile.save(
-            update_fields=[
-                'phone_country_code',
-                'phone_number',
-                'car_brand',
-                'car_model',
-                'car_color',
-                'car_plate',
-                'parking_level',
-                'parking_number',
-            ]
-        )
+        profile.save(update_fields=['phone_country_code', 'phone_number'])
 
-        plate = self.cleaned_data['car_plate'].strip()
-        if plate:
-            existing = Vehicle.objects.filter(user=user, plate__iexact=plate).first()
-            data = {
-                'brand': self.cleaned_data['car_brand'],
-                'model': self.cleaned_data['car_model'],
-                'color': self.cleaned_data['car_color'],
-                'plate': plate,
-                'parking_level': self.cleaned_data['parking_level'],
-                'parking_number': self.cleaned_data['parking_number'],
-            }
-            if existing:
-                Vehicle.objects.filter(user=user).exclude(pk=existing.pk).update(is_default=False)
-                for field_name, value in data.items():
-                    setattr(existing, field_name, value)
-                existing.is_default = True
-                existing.save(update_fields=[*data.keys(), 'is_default', 'updated_at'])
-            else:
-                Vehicle.objects.filter(user=user).update(is_default=False)
-                Vehicle.objects.create(
-                    user=user,
-                    is_default=True,
-                    **data,
+
+def sync_profile_from_vehicle(user, vehicle):
+    from .models import UserProfile
+
+    profile, _created = UserProfile.objects.get_or_create(user=user)
+    profile.car_brand = vehicle.brand
+    profile.car_model = vehicle.model
+    profile.car_color = vehicle.color
+    profile.car_plate = vehicle.plate
+    profile.parking_level = vehicle.parking_level
+    profile.parking_number = vehicle.parking_number
+    profile.save(
+        update_fields=[
+            'car_brand',
+            'car_model',
+            'car_color',
+            'car_plate',
+            'parking_level',
+            'parking_number',
+        ]
+    )
+
+
+class VehicleForm(forms.ModelForm):
+    class Meta:
+        model = Vehicle
+        fields = [
+            'brand',
+            'model',
+            'color',
+            'plate',
+            'parking_level',
+            'parking_number',
+            'is_default',
+        ]
+        labels = {
+            'brand': 'Marca del auto',
+            'model': 'Modelo',
+            'color': 'Color',
+            'plate': 'Placa',
+            'parking_level': 'Sótano',
+            'parking_number': 'Número de parqueo',
+            'is_default': 'Usar como predeterminado',
+        }
+        widgets = {
+            'brand': forms.TextInput(attrs={'placeholder': 'Toyota'}),
+            'model': forms.TextInput(attrs={'placeholder': 'Raize'}),
+            'color': forms.TextInput(attrs={'placeholder': 'Rojo'}),
+            'plate': forms.TextInput(attrs={'placeholder': '753KIJ'}),
+            'parking_level': forms.TextInput(attrs={'placeholder': 'S1'}),
+            'parking_number': forms.TextInput(attrs={'placeholder': '12'}),
+        }
+
+    def __init__(self, *args, user=None, **kwargs):
+        self.vehicle_user = user
+        super().__init__(*args, **kwargs)
+        self.fields['is_default'].required = False
+        if self.instance.pk is None and user is not None:
+            self.fields['is_default'].initial = not user.vehicles.exists()
+
+    def clean_plate(self):
+        plate = (self.cleaned_data.get('plate') or '').strip()
+        user = self.vehicle_user
+        if user is None:
+            return plate
+        duplicates = Vehicle.objects.filter(user=user, plate__iexact=plate)
+        if self.instance.pk:
+            duplicates = duplicates.exclude(pk=self.instance.pk)
+        if duplicates.exists():
+            raise forms.ValidationError('Ya tienes un vehículo con esa placa.')
+        return plate
+
+    def save(self, user=None, commit=True):
+        user = user or self.vehicle_user
+        vehicle = super().save(commit=False)
+        vehicle.user = user
+        make_default = bool(self.cleaned_data.get('is_default'))
+        if user and (make_default or not user.vehicles.exclude(pk=vehicle.pk or 0).exists()):
+            vehicle.is_default = True
+        if commit:
+            if vehicle.is_default:
+                Vehicle.objects.filter(user=user).exclude(pk=vehicle.pk or 0).update(
+                    is_default=False
                 )
+            vehicle.save()
+            if vehicle.is_default:
+                sync_profile_from_vehicle(user, vehicle)
+        return vehicle
+
 
 class UserForm(forms.ModelForm):
     class Meta:

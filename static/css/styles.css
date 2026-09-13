@@ -1143,6 +1143,59 @@ a {
     overflow-x: auto;
 }
 
+.account-vehicles-table {
+    min-width: 560px;
+}
+
+.account-vehicles-table th:nth-child(1),
+.account-vehicles-table td:nth-child(1) {
+    width: 42%;
+}
+
+.account-vehicles-table th:nth-child(2),
+.account-vehicles-table td:nth-child(2),
+.account-vehicles-table th:nth-child(3),
+.account-vehicles-table td:nth-child(3) {
+    width: 20%;
+}
+
+.account-vehicles-table th:last-child,
+.account-vehicles-table td:last-child {
+    text-align: right;
+    width: 18%;
+}
+
+.account-vehicle-name {
+    display: block;
+}
+
+.account-vehicles-table .status-pill {
+    background: #e0e7ff;
+    border-radius: 999px;
+    color: #1e3366;
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-top: 0.35rem;
+    padding: 0.25rem 0.55rem;
+}
+
+.account-vehicle-actions a {
+    font-weight: 700;
+}
+
+.account-vehicle-default label {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    gap: 0.55rem;
+}
+
+.account-vehicle-default input {
+    width: auto;
+}
+
 .dashboard-table {
     border-collapse: collapse;
     min-width: 620px;

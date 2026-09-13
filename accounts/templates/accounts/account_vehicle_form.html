@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | Lavado de Autos{% endblock %}
+
+{% block content %}
+<section class="card">
+    <h1>{{ page_title }}</h1>
+    <p>{{ page_description }}</p>
+
+    <form method="post" class="form profile-edit-form">
+        {% csrf_token %}
+
+        <p>
+            <label for="{{ form.brand.id_for_label }}">{{ form.brand.label }}</label>
+            {{ form.brand }}
+            {% if form.brand.errors %}<span class="field-error">{{ form.brand.errors|join:', ' }}</span>{% endif %}
+        </p>
+        <p>
+            <label for="{{ form.model.id_for_label }}">{{ form.model.label }}</label>
+            {{ form.model }}
+            {% if form.model.errors %}<span class="field-error">{{ form.model.errors|join:', ' }}</span>{% endif %}
+        </p>
+        <p>
+            <label for="{{ form.color.id_for_label }}">{{ form.color.label }}</label>
+            {{ form.color }}
+            {% if form.color.errors %}<span class="field-error">{{ form.color.errors|join:', ' }}</span>{% endif %}
+        </p>
+        <p>
+            <label for="{{ form.plate.id_for_label }}">{{ form.plate.label }}</label>
+            {{ form.plate }}
+            {% if form.plate.errors %}<span class="field-error">{{ form.plate.errors|join:', ' }}</span>{% endif %}
+        </p>
+        <p>
+            <label for="{{ form.parking_level.id_for_label }}">{{ form.parking_level.label }}</label>
+            {{ form.parking_level }}
+            {% if form.parking_level.errors %}<span class="field-error">{{ form.parking_level.errors|join:', ' }}</span>{% endif %}
+        </p>
+        <p>
+            <label for="{{ form.parking_number.id_for_label }}">{{ form.parking_number.label }}</label>
+            {{ form.parking_number }}
+            {% if form.parking_number.errors %}<span class="field-error">{{ form.parking_number.errors|join:', ' }}</span>{% endif %}
+        </p>
+        <p class="account-vehicle-default">
+            <label for="{{ form.is_default.id_for_label }}">
+                {{ form.is_default }}
+                {{ form.is_default.label }}
+            </label>
+            {% if form.is_default.errors %}<span class="field-error">{{ form.is_default.errors|join:', ' }}</span>{% endif %}
+        </p>
+
+        <div class="card-actions">
+            <button type="submit">{{ submit_label }}</button>
+            <a class="button button-secondary" href="{% url 'account_profile' %}">Cancelar</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

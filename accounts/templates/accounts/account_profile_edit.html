@@ -14,7 +14,7 @@
 
     <h1>Editar perfil</h1>
 
-    <p>Actualiza tu información personal, vehículo y parqueo.</p>
+    <p>Actualiza tu información personal y teléfono.</p>
 
 
 
@@ -89,40 +89,6 @@
                 <span class="field-error">{{ form.phone_local_number.errors|join:', ' }}</span>
             {% endif %}
         </div>
-
-        <fieldset class="profile-vehicle-fields">
-            <legend>Datos del vehículo</legend>
-            <p>
-                <label for="{{ form.car_brand.id_for_label }}">{{ form.car_brand.label }}</label>
-                {{ form.car_brand }}
-                {% if form.car_brand.errors %}<span class="field-error">{{ form.car_brand.errors|join:', ' }}</span>{% endif %}
-            </p>
-            <p>
-                <label for="{{ form.car_model.id_for_label }}">{{ form.car_model.label }}</label>
-                {{ form.car_model }}
-                {% if form.car_model.errors %}<span class="field-error">{{ form.car_model.errors|join:', ' }}</span>{% endif %}
-            </p>
-            <p>
-                <label for="{{ form.car_color.id_for_label }}">{{ form.car_color.label }}</label>
-                {{ form.car_color }}
-                {% if form.car_color.errors %}<span class="field-error">{{ form.car_color.errors|join:', ' }}</span>{% endif %}
-            </p>
-            <p>
-                <label for="{{ form.car_plate.id_for_label }}">{{ form.car_plate.label }}</label>
-                {{ form.car_plate }}
-                {% if form.car_plate.errors %}<span class="field-error">{{ form.car_plate.errors|join:', ' }}</span>{% endif %}
-            </p>
-            <p>
-                <label for="{{ form.parking_level.id_for_label }}">{{ form.parking_level.label }}</label>
-                {{ form.parking_level }}
-                {% if form.parking_level.errors %}<span class="field-error">{{ form.parking_level.errors|join:', ' }}</span>{% endif %}
-            </p>
-            <p>
-                <label for="{{ form.parking_number.id_for_label }}">{{ form.parking_number.label }}</label>
-                {{ form.parking_number }}
-                {% if form.parking_number.errors %}<span class="field-error">{{ form.parking_number.errors|join:', ' }}</span>{% endif %}
-            </p>
-        </fieldset>
 
         <div class="card-actions">
 

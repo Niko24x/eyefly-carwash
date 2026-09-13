@@ -82,35 +82,47 @@
 <section class="card">
     <div class="card-header">
         <p class="eyebrow">Vehículos</p>
-        <a class="button button-secondary" href="{% url 'account_profile_edit' %}">Agregar o editar</a>
+        <a class="button button-secondary" href="{% url 'account_vehicle_create' %}">Agregar</a>
     </div>
     {% if vehicles %}
         <div class="table-wrap">
-            <table>
+            <table class="dashboard-table account-vehicles-table">
                 <thead>
                     <tr>
                         <th>Vehículo</th>
                         <th>Placa</th>
                         <th>Parqueo</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for vehicle in vehicles %}
                         <tr>
                             <td>
-                                {{ vehicle.brand }} {{ vehicle.model }}
-                                {% if vehicle.color %} · {{ vehicle.color }}{% endif %}
+                                <span class="account-vehicle-name">
+                                    {{ vehicle.brand }} {{ vehicle.model }}
+                                    {% if vehicle.color %} · {{ vehicle.color }}{% endif %}
+                                </span>
                                 {% if vehicle.is_default %}<span class="status-pill">Predeterminado</span>{% endif %}
                             </td>
                             <td>{{ vehicle.plate }}</td>
-                            <td>{{ vehicle.parking_level }} · {{ vehicle.parking_number }}</td>
+                            <td>
+                                {% if vehicle.parking_level or vehicle.parking_number %}
+                                    {{ vehicle.parking_level }}{% if vehicle.parking_level and vehicle.parking_number %} · {% endif %}{{ vehicle.parking_number }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                            <td class="account-vehicle-actions">
+                                <a href="{% url 'account_vehicle_update' vehicle.pk %}">Editar</a>
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     {% else %}
-        <p>Sin vehículos guardados. Se guardará uno cuando edites tu perfil o agendes una cita.</p>
+        <p>Sin vehículos guardados. Agrega uno para usarlo al agendar una cita.</p>
     {% endif %}
 </section>
 
