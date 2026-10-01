@@ -1,6 +1,9 @@
-# Python==3.11.7
+# Python 3.11 locally. The VPS is Python 3.14, which needs Django 5.2.8+ and Pillow 12+.
 asgiref==3.10.0
-Django==5.2.7
-Pillow==10.4.0
+Django==5.2.17
+gunicorn==23.0.0
+Pillow==12.3.0
+psycopg[binary]==3.3.6
 sqlparse==0.5.3
 tzdata==2025.2
+whitenoise==6.11.0
