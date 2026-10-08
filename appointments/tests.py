@@ -511,6 +511,13 @@ class AppointmentPageTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'AGENDAR LAVADO')
+        self.assertContains(response, 'name="phone_local_number"')
+        self.assertContains(response, 'wizard-phone-field')
+        hidden_start = response.content.find(b'wizard-hidden-fields')
+        phone_in_hidden = response.content.find(b'name="phone_local_number"', hidden_start)
+        visible_phone = response.content.find(b'wizard-phone-field')
+        self.assertNotEqual(hidden_start, -1)
+        self.assertGreater(phone_in_hidden, visible_phone)
 
     def test_appointment_create_assigns_logged_in_user(self):
         self.client.login(username='cliente', password='password123')

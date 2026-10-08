@@ -31,8 +31,6 @@
         {{ form.last_name }}
         {{ form.full_name }}
         {{ form.email }}
-        {{ form.phone_country_code }}
-        {{ form.phone_local_number }}
         {{ form.car_brand }}
         {{ form.car_model }}
         {{ form.car_color }}
@@ -194,6 +192,26 @@
 
             <div class="wizard-summary" id="wiz-summary"></div>
 
+            <div class="wizard-field wizard-phone-field">
+                <div class="phone-field">
+                    <label class="phone-field-label" for="{{ form.phone_local_number.id_for_label }}">Teléfono</label>
+                    <div class="phone-input-group phone-input-group--composite">
+                        <div class="phone-code-wrap">
+                            {{ form.phone_country_code }}
+                        </div>
+                        <div class="phone-number-wrap">
+                            {{ form.phone_local_number }}
+                        </div>
+                    </div>
+                    {% if form.phone_country_code.errors %}
+                        <span class="wizard-field-error">{{ form.phone_country_code.errors|join:', ' }}</span>
+                    {% endif %}
+                    {% if form.phone_local_number.errors %}
+                        <span class="wizard-field-error">{{ form.phone_local_number.errors|join:', ' }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
             <div class="wizard-vehicle-table-wrap">
                 <table class="wizard-vehicle-table">
                     <thead>
@@ -233,5 +251,6 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script src="{% static 'js/phone-fields.js' %}"></script>
 <script src="{% static 'js/appointment-wizard.js' %}"></script>
 {% endblock %}

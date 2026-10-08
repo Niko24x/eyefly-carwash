@@ -524,6 +524,7 @@
             ['Inicio', selectedDate ? formatDisplayDate(selectedDate) : '—'],
             ['Hora', selectedTime ? formatDisplayTime(selectedTime) : '—'],
             ['Cadencia', RECURRENCE_LABELS[cadence] || 'Única'],
+            ['Teléfono', formatPhone()],
         ];
         if (cadence !== 'unica') {
             rows.push(['Fecha fin', endIso ? formatDisplayDate(endIso) : '—']);
@@ -535,6 +536,22 @@
                 <dd>${value}</dd>
             </div>`).join('');
         renderVehicleRows(seriesDates, service);
+    }
+
+    function formatPhone() {
+        const countryCode = form.querySelector('[name="phone_country_code"]');
+        const localNumber = form.querySelector('[name="phone_local_number"]');
+        const digits = localNumber ? localNumber.value.trim() : '';
+        if (!digits) {
+            return '—';
+        }
+        const prefix = countryCode && countryCode.value ? `+${countryCode.value} ` : '';
+        return `${prefix}${digits}`;
+    }
+
+    function phoneIsFilled() {
+        const localNumber = form.querySelector('[name="phone_local_number"]');
+        return Boolean(localNumber && localNumber.value.trim());
     }
 
     function syncVehicleInputs() {
@@ -674,7 +691,7 @@
 
     // ----- Validation per step -----
     function customerFieldsFilled() {
-        return allSeriesDatesHaveVehicles();
+        return allSeriesDatesHaveVehicles() && phoneIsFilled();
     }
 
     function applyVehicleToAllDates(vehicleId) {
@@ -835,7 +852,7 @@
             return;
         }
         nextButton.disabled = !isStepValid(currentStep);
-        submitButton.disabled = !isStepValid(TOTAL_STEPS);
+        submitButton.disabled = isSubmitting || !isStepValid(TOTAL_STEPS);
     }
 
     nextButton.addEventListener('click', () => {
@@ -882,20 +899,57 @@
     }
     let isSubmitting = false;
 
-    form.addEventListener('submit', (event) => {
-        if (!isStepValid(TOTAL_STEPS) || !recurrenceFieldsValid() || !selectedBuilding
-            || !selectedService || !selectedDate || !selectedTime) {
+    function lockSubmitButton() {
+        isSubmitting = true;
+        submitButton.setAttribute('aria-disabled', 'true');
+        submitButton.style.pointerEvents = 'none';
+        submitButton.textContent = 'Confirmando...';
+        window.setTimeout(() => {
+            submitButton.disabled = true;
+        }, 0);
+    }
+
+    submitButton.addEventListener('click', (event) => {
+        if (isSubmitting) {
             event.preventDefault();
-            return;
+            event.stopImmediatePropagation();
         }
+    });
+
+    form.addEventListener('submit', (event) => {
         if (isSubmitting) {
             event.preventDefault();
             return;
         }
-        isSubmitting = true;
-        submitButton.disabled = true;
-        submitButton.textContent = 'Confirmando...';
+        if (!isStepValid(TOTAL_STEPS) || !recurrenceFieldsValid() || !selectedBuilding
+            || !selectedService || !selectedDate || !selectedTime || !phoneIsFilled()) {
+            event.preventDefault();
+            return;
+        }
+        lockSubmitButton();
     });
+
+    form.querySelectorAll('.wizard-hidden-fields [required]').forEach((field) => {
+        field.required = false;
+    });
+
+    const phoneLocalInput = form.querySelector('[name="phone_local_number"]');
+    const phoneCountryInput = form.querySelector('[name="phone_country_code"]');
+    if (phoneLocalInput) {
+        phoneLocalInput.addEventListener('input', () => {
+            if (currentStep === 4) {
+                renderSummary();
+            }
+            updateNav();
+        });
+    }
+    if (phoneCountryInput) {
+        phoneCountryInput.addEventListener('change', () => {
+            if (currentStep === 4) {
+                renderSummary();
+            }
+        });
+    }
 
     // ----- Init -----
     function restoreFromForm() {
