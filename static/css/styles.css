@@ -2326,6 +2326,16 @@ a {
     color: var(--color-yinmn-blue);
 }
 
+.svc-card--red .svc-badge {
+    background: transparent;
+    border: 1.5px solid var(--color-yinmn-blue);
+    color: #fff;
+}
+
+.svc-card--red .svc-features .is-included i {
+    color: var(--color-yinmn-blue);
+}
+
 .svc-card--red .svc-cta {
     color: var(--color-red);
 }
@@ -3187,6 +3197,16 @@ a {
     padding: 0.75rem 1rem;
     text-align: center;
     transition: background 0.15s ease, color 0.15s ease;
+}
+
+.home-svc-card--red .home-svc-badge {
+    background: transparent;
+    border: 1.5px solid var(--color-yinmn-blue);
+    color: #fff;
+}
+
+.home-svc-card--red .home-svc-features li i {
+    color: var(--color-yinmn-blue);
 }
 
 .home-svc-card--red .home-svc-cta {
@@ -4297,6 +4317,10 @@ a {
     color: rgba(30, 51, 102, 0.65);
     font-size: 0.78rem;
     line-height: 1.35;
+}
+
+.wizard-phone-field {
+    margin: 1rem 0 1.25rem;
 }
 
 .wizard-field {
