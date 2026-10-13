@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, PasswordChangeForm, UserCreationForm
 from django.contrib.auth.models import User
 
 from .country_codes import DEFAULT_COUNTRY_CODE
@@ -43,6 +43,17 @@ class RegisterForm(UserCreationForm):
         labels = {
             'username': 'Nombre de usuario',
         }
+
+
+class AccountPasswordChangeForm(PasswordChangeForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['old_password'].label = 'Contraseña actual'
+        self.fields['new_password1'].label = 'Nueva contraseña'
+        self.fields['new_password2'].label = 'Confirmar nueva contraseña'
+        self.fields['old_password'].widget.attrs['autocomplete'] = 'current-password'
+        self.fields['new_password1'].widget.attrs['autocomplete'] = 'new-password'
+        self.fields['new_password2'].widget.attrs['autocomplete'] = 'new-password'
 
 
 class ProfileEditForm(forms.Form):

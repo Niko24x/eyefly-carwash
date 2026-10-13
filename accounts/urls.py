@@ -7,6 +7,7 @@ urlpatterns = [
     path('registro/', views.register, name='register'),
     path('mi-cuenta/', views.account_profile, name='account_profile'),
     path('mi-cuenta/editar/', views.account_profile_edit, name='account_profile_edit'),
+    path('mi-cuenta/contrasena/', views.account_password_change, name='account_password_change'),
     path('mi-cuenta/vehiculos/nuevo/', views.account_vehicle_create, name='account_vehicle_create'),
     path(
         'mi-cuenta/vehiculos/<int:pk>/editar/',

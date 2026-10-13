@@ -1,13 +1,20 @@
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import get_user_model, login
+from django.contrib.auth import get_user_model, login, update_session_auth_hash
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 
 from appointments.models import Appointment, AppointmentStatus
 
-from .forms import ProfileEditForm, RegisterForm, StaffUserCreationForm, UserForm, VehicleForm
+from .forms import (
+    AccountPasswordChangeForm,
+    ProfileEditForm,
+    RegisterForm,
+    StaffUserCreationForm,
+    UserForm,
+    VehicleForm,
+)
 from .models import UserProfile, Vehicle
 
 
@@ -68,6 +75,25 @@ def account_profile_edit(request):
         {
             'form': form,
         },
+    )
+
+
+@login_required
+def account_password_change(request):
+    if request.method == 'POST':
+        form = AccountPasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, 'Tu contraseña fue actualizada correctamente.')
+            return redirect('account_profile')
+    else:
+        form = AccountPasswordChangeForm(request.user)
+
+    return render(
+        request,
+        'accounts/account_password_change.html',
+        {'form': form},
     )
 
 

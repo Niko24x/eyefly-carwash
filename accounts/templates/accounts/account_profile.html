@@ -14,7 +14,10 @@
 <section class="card">
     <div class="card-header">
         <p class="eyebrow">Perfil</p>
-        <a class="button button-secondary" href="{% url 'account_profile_edit' %}">Editar perfil</a>
+        <div class="card-header-actions">
+            <a class="button button-secondary" href="{% url 'account_password_change' %}">Cambiar contraseña</a>
+            <a class="button button-secondary" href="{% url 'account_profile_edit' %}">Editar perfil</a>
+        </div>
     </div>
     <dl class="appointment-detail-list">
         <div>

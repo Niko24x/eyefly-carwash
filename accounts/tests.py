@@ -90,6 +90,47 @@ class AccountPageTests(TestCase):
         self.assertContains(response, 'cliente')
         self.assertContains(response, 'cliente@example.com')
         self.assertContains(response, 'Editar perfil')
+        self.assertContains(response, 'Cambiar contraseña')
+        self.assertContains(response, reverse('account_password_change'))
+
+    def test_account_password_change_requires_login(self):
+        response = self.client.get(reverse('account_password_change'))
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/cuentas/login/', response['Location'])
+
+    def test_account_password_change_updates_password_and_keeps_session(self):
+        self.client.login(username='cliente', password='password123')
+
+        response = self.client.post(
+            reverse('account_password_change'),
+            {
+                'old_password': 'password123',
+                'new_password1': 'nueva-clave-456',
+                'new_password2': 'nueva-clave-456',
+            },
+        )
+
+        self.assertRedirects(response, reverse('account_profile'))
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('nueva-clave-456'))
+        self.assertEqual(int(self.client.session['_auth_user_id']), self.user.id)
+
+    def test_account_password_change_rejects_wrong_current_password(self):
+        self.client.login(username='cliente', password='password123')
+
+        response = self.client.post(
+            reverse('account_password_change'),
+            {
+                'old_password': 'incorrecta',
+                'new_password1': 'nueva-clave-456',
+                'new_password2': 'nueva-clave-456',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('password123'))
 
     def test_account_profile_edit_updates_user_and_phone(self):
         self.client.login(username='cliente', password='password123')

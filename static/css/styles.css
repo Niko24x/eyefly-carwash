@@ -139,6 +139,12 @@ a {
     margin: 0;
 }
 
+.card-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
 .phone-input-group {
     display: flex;
     flex-wrap: wrap;
@@ -258,6 +264,18 @@ a {
 .field-error {
     color: #dc2626;
     font-size: 0.875rem;
+}
+
+.field-hint {
+    color: #64748b;
+    display: block;
+    font-size: 0.85rem;
+    margin-top: 0.35rem;
+}
+
+.field-hint ul {
+    margin: 0.35rem 0 0;
+    padding-left: 1.1rem;
 }
 
 .form textarea {
